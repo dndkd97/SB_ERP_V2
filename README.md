@@ -134,5 +134,5 @@ OpenAI GPT API로 프로젝트 진행 상황을 분석하고, 위험도가 높�
 
 ## Related Repositories
 - v1 (Spring MVC + JSP): https://github.com/dndkd97/SB_ERP_V1
-- v3 (REST API + AI 채용관리): (링크 추가 예정)
+- v3 (REST API + AI 채용관리): https://github.com/dndkd97/SB_ERP_V3
 - 팀 전체 원본: https://github.com/yoonguri988/spring-breeze-erp
