@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+	xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	layout:decorate="~{fragments/layout}">
+<head>
+<title>사원 등록</title>
+</head>
+<body>
+	<section class="emp_add sb-content" layout:fragment="content">
+
+		<!-- 페이지 헤더 -->
+		<div class="sb-page-head">
+			<div class="sb-page-head__txt">
+				<div class="sb-breadcrumb">
+					<a th:href="@{/}">홈</a> <i class="bi bi-chevron-right"></i> <a
+						th:href="@{/emp/list}">사원관리</a> <i class="bi bi-chevron-right"></i>
+					사원 등록
+				</div>
+				<h1>사원 등록</h1>
+				<p>새로운 사원을 등록합니다.</p>
+			</div>
+			<div class="sb-page-head__actions">
+				<a th:href="@{/emp/list}" class="btn btn-ghost btn-sm"> <i
+					class="bi bi-arrow-left"></i> 목록으로
+				</a>
+			</div>
+		</div>
+
+		<form th:action="@{/emp/add}" method="post"
+			onsubmit="return checkForm()">
+
+			<!-- 기본 정보 -->
+			<div class="sb-card mb-3">
+				<div class="sb-card__head">
+					<h2>
+						<i class="bi bi-person me-2 text-soft"></i>기본 정보
+					</h2>
+				</div>
+				<div class="sb-card__body">
+					<div class="row g-3">
+						<div class="col-md-6">
+							<label for="empNo" class="sb-form-label">사번 <span>*</span></label>
+							<input type="text" class="form-control" id="empNo" name="empNo"
+								required />
+							<div class="tEmpNo duplicateChkBox"></div>
+						</div>
+
+						<div class="col-md-6">
+							<label for="empName" class="sb-form-label">이름 <span>*</span></label>
+							<input type="text" class="form-control" id="empName"
+								name="empName" required />
+						</div>
+
+						<div class="col-md-6">
+							<label for="deptId" class="sb-form-label">부서 <span>*</span></label>
+							<select class="form-select" id="deptId" name="deptId" required>
+								<option value="">부서 선택</option>
+								<option th:each="dept : ${deptList}" th:value="${dept.deptId}"
+									th:text="${dept.deptName}">부서명</option>
+							</select>
+						</div>
+
+						<div class="col-md-6">
+							<label for="posId" class="sb-form-label">직급 <span>*</span></label>
+							<select id="posId" name="posId" class="form-select" required>
+								<option value="">직급 선택</option>
+								<option th:each="pos : ${posList}" th:value="${pos.posId}"
+									th:text="${pos.posName}">직급명</option>
+							</select>
+						</div>
+
+						<div class="col-md-6">
+							<label for="empEmail" class="sb-form-label">이메일 <span>*</span></label>
+							<input type="email" class="form-control" id="empEmail"
+								name="empEmail" placeholder="예: name@company.com" required />
+							<div class="tEmail duplicateChkBox"></div>
+						</div>
+
+						<div class="col-md-6">
+							<label for="empMobile" class="sb-form-label">연락처 <span>*</span></label>
+							<input type="tel" class="form-control" id="empMobile"
+								name="empMobile" pattern="[0-9]{2,3}-[0-9]{3,4}-[0-9]{4}"
+								placeholder="예: 010-1234-5678" required />
+							<div class="tMobile duplicateChkBox"></div>
+						</div>
+
+						<div class="col-md-6">
+							<label for="hireDate" class="sb-form-label">입사일 <span>*</span></label>
+							<input type="date" class="form-control" id="hireDate"
+								name="hireDate" required />
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- 버튼 -->
+			<div class="d-flex gap-2 justify-content-end">
+				<a th:href="@{/emp/list}" class="btn btn-ghost" title="취소">취소</a>
+				<button type="submit" class="btn btn-sb" id="submitBtn" title="등록하기">등록</button>
+			</div>
+
+		</form>
+	</section>
+
+	<th:block layout:fragment="script">
+		<script th:inline="javascript">
+    // Thymeleaf 컨텍스트 경로 (있으면 사용)
+    const CTX = /*[[@{/}]]*/ '/';
+
+    window.addEventListener("load", function(){
+        const empNo = document.getElementById("empNo");
+        const empEmail = document.getElementById("empEmail");
+        const empMobile = document.getElementById("empMobile");
+        const targetEmpNo = document.querySelector(".tEmpNo");
+        const targetEmail = document.querySelector(".tEmail");
+        const targetMobile = document.querySelector(".tMobile");
+        const submitBtn = document.getElementById("submitBtn");
+
+        let emailOk = false;
+        let mobileOk = false;
+        let empNoOk = false;
+
+        function updateSubmit() {
+            if (empNoOk && emailOk && mobileOk) {
+                submitBtn.disabled = false;
+                submitBtn.className = "btn btn-primary";
+            } else {
+                submitBtn.disabled = true;
+                submitBtn.className = "btn btn-sb";
+            }
+        }
+        updateSubmit();
+
+        // 사번 검증
+        empNo.addEventListener("blur", function(e){
+            const value = e.target.value.trim();
+            if (value === "") {
+                targetEmpNo.textContent = "사번을 입력하세요.";
+                targetEmpNo.className = "tEmpNo duplicateChkBox sb-badge--amber";
+                empNoOk = false;
+                updateSubmit();
+                return;
+            }
+
+            fetch(CTX + "emp/checkEmpNo?empNo=" + encodeURIComponent(value))
+                .then(res => res.json())
+                .then(data => {
+                    if (data.duplicate) {
+                        targetEmpNo.textContent = "이미 사용중인 사번입니다.";
+                        targetEmpNo.className = "tEmpNo duplicateChkBox sb-badge--red";
+                        empNoOk = false;
+                    } else {
+                        targetEmpNo.textContent = "사용 가능한 사번입니다.";
+                        targetEmpNo.className = "tEmpNo duplicateChkBox sb-badge--green";
+                        empNoOk = true;
+                    }
+                    updateSubmit();
+                })
+                .catch(err => {
+                    targetEmpNo.textContent = "서버 오류입니다.";
+                    targetEmpNo.className = "tEmpNo duplicateChkBox sb-badge--cyan";
+                    empNoOk = false;
+                    updateSubmit();
+                });
+        });
+
+        // 이메일 검증
+        empEmail.addEventListener("blur", function(e){
+            const value = e.target.value.trim();
+            if (value === "") {
+                targetEmail.textContent = "이메일을 입력하세요.";
+                targetEmail.className = "tEmail duplicateChkBox sb-badge--amber";
+                emailOk = false;
+                updateSubmit();
+                return;
+            }
+            if (!empEmail.validity.valid) {
+                targetEmail.textContent = "올바른 이메일 형식이 아닙니다.";
+                targetEmail.className = "tEmail duplicateChkBox sb-badge--gray";
+                emailOk = false;
+                updateSubmit();
+                return;
+            }
+
+            fetch(CTX + "emp/checkEmail?empEmail=" + encodeURIComponent(value))
+                .then(res => res.json())
+                .then(data => {
+                    if (data.duplicate) {
+                        targetEmail.textContent = "이미 사용중인 이메일입니다.";
+                        targetEmail.className = "tEmail duplicateChkBox sb-badge--red";
+                        emailOk = false;
+                    } else {
+                        targetEmail.textContent = "사용 가능한 이메일입니다.";
+                        targetEmail.className = "tEmail duplicateChkBox sb-badge--green";
+                        emailOk = true;
+                    }
+                    updateSubmit();
+                })
+                .catch(err => {
+                    targetEmail.textContent = "서버 오류입니다.";
+                    targetEmail.className = "tEmail duplicateChkBox sb-badge--cyan";
+                    emailOk = false;
+                    updateSubmit();
+                });
+        });
+
+        // 연락처 검증
+        empMobile.addEventListener("blur", function(e){
+            const value = e.target.value.trim();
+            if (value === "") {
+                targetMobile.textContent = "연락처를 입력하세요.";
+                targetMobile.className = "tMobile duplicateChkBox sb-badge--amber";
+                mobileOk = false;
+                updateSubmit();
+                return;
+            }
+            if (!empMobile.validity.valid) {
+                targetMobile.textContent = "올바른 연락처 형식이 아닙니다.";
+                targetMobile.className = "tMobile duplicateChkBox sb-badge--gray";
+                mobileOk = false;
+                updateSubmit();
+                return;
+            }
+
+            fetch(CTX + "emp/checkMobile?empMobile=" + encodeURIComponent(value))
+                .then(res => res.json())
+                .then(data => {
+                    if (data.duplicate) {
+                        targetMobile.textContent = "이미 사용중인 연락처입니다.";
+                        targetMobile.className = "tMobile duplicateChkBox sb-badge--red";
+                        mobileOk = false;
+                    } else {
+                        targetMobile.textContent = "사용 가능한 연락처입니다.";
+                        targetMobile.className = "tMobile duplicateChkBox sb-badge--green";
+                        mobileOk = true;
+                    }
+                    updateSubmit();
+                })
+                .catch(err => {
+                    targetMobile.textContent = "서버 오류입니다.";
+                    targetMobile.className = "tMobile duplicateChkBox sb-badge--cyan";
+                    mobileOk = false;
+                    updateSubmit();
+                });
+        });
+    });
+
+    function checkForm() {
+        const fields = ['empNo', 'empName', 'deptId', 'posId', 'empEmail', 'empMobile', 'hireDate'];
+        for (let i = 0; i < fields.length; i++) {
+            const el = document.getElementById(fields[i]);
+            if (el.value.trim() === '') {
+                el.focus();
+                return false;
+            }
+        }
+        return true;
+    }
+</script>
+	</th:block>
+</body>
+</html>

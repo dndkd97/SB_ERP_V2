@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{fragments/layout}">
+<head>
+    <title>예약 상세보기</title>
+</head>
+<body>
+<main layout:fragment="content" class="sb-content">
+  <div class="sb-page-head">
+    <div class="sb-page-head__txt">
+      <div class="sb-breadcrumb">
+        <a th:href="@{/resv/my}">예약 내역</a>
+        <i class="bi bi-chevron-right"></i> 예약 상세보기
+      </div>
+      <h1>예약 상세보기</h1>
+      <p>예약 신청 정보와 처리 현황을 확인합니다.</p>
+    </div>
+    <div class="sb-page-head__actions">
+      <a th:if=${!isAdmin} th:href="@{/resv/my}" class="btn btn-ghost btn-sm"><i class="bi bi-arrow-left"></i> 목록으로</a>
+      <a th:if=${isAdmin} th:href="@{/admin/resv/list(status=WAI)}" class="btn btn-ghost btn-sm"><i class="bi bi-arrow-left"></i> 목록으로</a>
+    </div>
+  </div>
+
+  <!-- 상단 요약 : 예약 ID + 상태 배지(같은 줄) / 우측은 상황별 액션 -->
+  <div class="sb-card mb-3">
+    <div class="sb-card__head">
+      <h2 class="d-flex align-items-center gap-2">
+        예약 ID <span th:text="${resv?.revId}"></span>
+        <!-- 상태 배지를 제목 바로 옆에 -->
+        <span th:switch="${resv?.status}">
+          <span th:case="'WAI'" class="sb-badge sb-badge--amber"><i class="bi bi-hourglass-split"></i> 대기</span>
+          <span th:case="'APP'" class="sb-badge sb-badge--green"><i class="bi bi-check-circle"></i> 승인</span>
+          <span th:case="'REJ'" class="sb-badge sb-badge--red"><i class="bi bi-x-circle"></i> 반려</span>
+        </span>
+      </h2>
+      <div class="right d-flex align-items-center gap-2">
+
+        <!-- 신청자 본인 + 대기 상태일 때만 수정/취소 노출 (서버에서도 동일 조건으로 재검증 필요) -->
+        <th:block th:if="${!isAdmin and resv?.status == 'WAI' and resv?.empId == empId}">
+          <a th:href="@{/resv/edit(revId=${resv?.revId})}" class="btn btn-ghost btn-sm">
+            <i class="bi bi-pencil"></i> 수정
+          </a>
+          <button type="button" class="btn btn-ghost btn-sm text-danger btn-cancel-resv"
+                  data-bs-toggle="modal" data-bs-target="#cancelModal"
+                  th:data-rev-id="${resv?.revId}">
+            <i class="bi bi-x-lg"></i> 취소
+          </button>
+        </th:block>
+
+        <!-- [신규] 관리자 + 대기 상태일 때만 승인/반려 노출 -->
+        <th:block th:if="${isAdmin and resv?.status == 'WAI'}">
+          <button type="button" class="btn btn-sb btn-sm btn-approve-resv"
+                  data-bs-toggle="modal" data-bs-target="#approveModal"
+                  th:data-rev-id="${resv?.revId}">
+            <i class="bi bi-check-lg"></i> 승인
+          </button>
+          <button type="button" class="btn btn-ghost btn-sm text-danger btn-reject-resv"
+                  data-bs-toggle="modal" data-bs-target="#rejectModal"
+                  th:data-rev-id="${resv?.revId}">
+            <i class="bi bi-x-lg"></i> 반려
+          </button>
+        </th:block>
+      </div>
+    </div>
+  </div>
+
+  <!-- row 기본값(align-items: stretch)을 명시해 좌/우 컬럼이 같은 높이로 늘어나도록 함 -->
+  <div class="row g-3 align-items-stretch">
+    <!-- 좌측 : 자원 정보 + 예약 정보 -->
+    <div class="col-lg-7 d-flex flex-column">
+      <div class="sb-card mb-3">
+        <div class="sb-card__head">
+          <h2>자원 정보</h2>
+        </div>
+        <div class="sb-card__body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <span class="dd-label">자원명</span>
+              <div class="view-val view-val--accent">
+                <b th:text="${resource?.resName}"></b>
+                <span class="text-faint" th:text="'(' + ${resource?.resCode} + ')'"></span>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <span class="dd-label">자원 유형</span>
+              <div class="view-val">
+                <span th:switch="${resource?.resType}">
+                  <span th:case="'ROOM'"      class="sb-badge sb-badge--blue"><i class="bi bi-door-open"></i> 회의실</span>
+                  <span th:case="'EQUIPMENT'" class="sb-badge sb-badge--violet"><i class="bi bi-tools"></i> 장비</span>
+                  <span th:case="'VEHICLE'"   class="sb-badge sb-badge--cyan"><i class="bi bi-truck"></i> 차량</span>
+                  <span th:case="*" class="sb-badge sb-badge--gray" th:text="${resource?.resType}"></span>
+                </span>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <span class="dd-label">위치</span>
+              <div class="view-val">
+                <i class="bi bi-geo-alt text-faint"></i>
+                <span th:text="${#strings.isEmpty(resource?.location) ? '-' : resource?.location}"></span>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <span class="dd-label">수용인원 / 보유수량</span>
+              <div class="view-val">
+                <span th:if="${resource?.capacity != null}"><i class="bi bi-people text-faint"></i> <span th:text="${resource?.capacity}"></span>명</span>
+                <span th:if="${resource?.quantity != null}"><i class="bi bi-box-seam text-faint"></i> <span th:text="${resource?.quantity}"></span>개</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- flex-grow-1 : 좌측 두 번째 카드가 남는 세로 공간을 채워 우측 전체 높이와 자연스럽게 맞물리게 함 -->
+      <div class="sb-card mb-3 flex-grow-1">
+        <div class="sb-card__head">
+          <h2>예약 정보</h2>
+        </div>
+        <div class="sb-card__body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <span class="dd-label">시작 일시</span>
+              <div class="view-val">
+                <i class="bi bi-calendar-event text-faint"></i>
+                <span th:text="${resv?.startDt}"></span>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <span class="dd-label">종료 일시</span>
+              <div class="view-val">
+                <i class="bi bi-calendar-check text-faint"></i>
+                <span th:text="${resv?.endDt}"></span>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <span class="dd-label">예약 수량</span>
+              <div class="view-val" th:text="${resv?.quantity}"></div>
+            </div>
+            <div class="col-md-6">
+              <span class="dd-label">반납 일시</span>
+              <div class="view-val">
+                <span th:if="${resv?.returnDt != null}" class="sb-badge sb-badge--green" th:text="${resv?.returnDt}"></span>
+                <span th:if="${resv?.returnDt == null and resv?.status == 'APP'}" class="sb-badge sb-badge--amber">미반납</span>
+                <span th:if="${resv?.returnDt == null and resv?.status != 'APP'}" class="view-val-empty">해당 없음</span>
+              </div>
+            </div>
+            <div class="col-12">
+              <span class="dd-label">신청 사유</span>
+              <div class="view-val" style="max-height:120px; overflow-y:auto; align-items:flex-start; white-space:pre-line"
+                   th:text="${#strings.isEmpty(resv?.remark) ? '-' : resv?.remark}"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 우측 : 신청자 + 처리 현황 (하나의 카드로 통합, flex-column으로 좌측 전체 높이만큼 늘어남) -->
+    <div class="col-lg-5 d-flex flex-column">
+      <div class="sb-card mb-3 flex-grow-1 d-flex flex-column">
+        <div class="sb-card__head">
+          <h2>신청자</h2>
+        </div>
+        <div class="sb-card__body">
+          <div class="sb-rowuser mb-3">
+            <span class="sb-avatar" th:text="${resv?.empName != null ? #strings.substring(resv.empName,0,1) : '-'}"></span>
+            <div>
+              <div style="font-weight:700" th:text="${resv?.empName}"></div>
+              <div class="text-faint" style="font-size:12.5px" th:text="${resv?.deptName}"></div>
+            </div>
+          </div>
+          <span class="dd-label">신청일</span>
+          <div class="view-val" th:text="${resv?.createdAt}"></div>
+        </div>
+
+        <div class="sb-divider" style="margin:0"></div>
+
+        <div class="sb-card__head">
+          <h2>처리 현황</h2>
+        </div>
+        <!-- flex-grow-1 : 처리현황 본문이 남는 세로 공간을 채워 좌측 카드 하단과 높이를 맞춤 -->
+        <div class="sb-card__body flex-grow-1">
+
+          <!-- 대기 : 아직 처리 전 -->
+          <div th:if="${resv?.status == 'WAI'}" class="sb-empty" style="padding:24px 12px">
+            <i class="bi bi-hourglass-split"></i>
+            <p>관리자 승인을 기다리고 있습니다.</p>
+          </div>
+
+          <!-- 승인 : 승인자 / 승인일시 -->
+          <div th:if="${resv?.status == 'APP'}">
+            <span class="dd-label">승인자</span>
+            <div class="view-val view-val--accent mb-3">
+              <i class="bi bi-person-check"></i>
+              <span th:text="${resv?.approvedEmpName}"></span>
+            </div>
+            <span class="dd-label">승인 일시</span>
+            <div class="view-val" th:text="${resv?.approvedAt}"></div>
+          </div>
+
+          <!-- 반려 : 반려자 / 반려일시 / 반려사유 -->
+          <div th:if="${resv?.status == 'REJ'}">
+            <span class="dd-label">반려자</span>
+            <div class="view-val mb-3">
+              <i class="bi bi-person-x text-danger"></i>
+              <span th:text="${resv?.approvedEmpName}"></span>
+            </div>
+            <span class="dd-label">반려 일시</span>
+            <div class="view-val mb-3" th:text="${resv?.approvedAt}"></div>
+            <span class="dd-label">반려 사유</span>
+            <!-- 반려 사유가 길어져도 카드가 늘어나지 않도록 max-height + 스크롤 고정 -->
+            <div class="view-val text-danger" style="max-height:120px; overflow-y:auto; align-items:flex-start; white-space:pre-line"
+                 th:text="${resv?.rejectReason}"></div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div th:replace="~{resv/modal/cancelModal :: cancelModal}"></div>
+  <div th:replace="~{resv/modal/approveModal :: approveModal}"></div>
+  <div th:replace="~{resv/modal/rejectModal :: rejectModal}"></div>
+</main>
+
+<th:block layout:fragment="script">
+  <div th:replace="~{resv/modal/cancelModal :: cancelModalScript}"></div>
+  <div th:replace="~{resv/modal/approveModal :: approveModalScript}"></div>
+  <div th:replace="~{resv/modal/rejectModal :: rejectModalScript}"></div>
+</th:block>
+</body>
+</html>

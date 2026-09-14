@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+  <div th:fragment="approveModal" class="modal fade" id="approveModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <form th:action="@{/admin/resv/approve}" method="post" id="approveForm">
+          <div class="modal-header">
+            <h5 class="modal-title">예약 승인</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" name="revId" id="approveRevId">
+            <!-- emp.css 의 sb-confirm-box 패턴 재사용 (확인 액션 UI, 승인은 위험 액션이 아니므로 accent 톤) -->
+            <div class="sb-confirm-box sb-confirm-box--accent" style="margin-bottom:0">
+              <div class="sb-confirm-box__icon"><i class="bi bi-check-circle-fill"></i></div>
+              <div class="sb-confirm-box__text">
+                <p class="sb-confirm-box__title">이 예약 요청을 승인하시겠습니까?</p>
+                <p class="sb-confirm-box__desc">승인 후에는 신청자에게 자원 사용이 확정되며, 상태를 다시 대기로 되돌릴 수 없습니다.</p>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">닫기</button>
+            <button type="submit" class="btn btn-sb">
+              <i class="bi bi-check-lg"></i> 승인 처리
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <th:block th:fragment="approveModalScript">
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const approveModalEl = document.getElementById('approveModal');
+      if (!approveModalEl) return;
+
+      const approveRevId = document.getElementById('approveRevId');
+
+      // 승인 버튼(class="btn-approve-resv" data-rev-id="...") 클릭 시 모달의 hidden revId 채우기
+      document.querySelectorAll('.btn-approve-resv').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          approveRevId.value = this.dataset.revId;
+        });
+      });
+    });
+  </script>
+  </th:block>
+
+</body>
+</html>

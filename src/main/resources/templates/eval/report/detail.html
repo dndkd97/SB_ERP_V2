@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+	xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+	xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	layout:decorate="~{fragments/layout}">
+<head>
+<title>AI 리포트 상세</title>
+</head>
+<body>
+	<section class="eval_report_detail sb-content"
+		layout:fragment="content">
+
+		<!-- 페이지 헤더 -->
+		<div class="sb-page-head">
+			<div class="sb-page-head__txt">
+				<div class="sb-breadcrumb">
+					<a th:href="@{/}">홈</a> <i class="bi bi-chevron-right"></i>인사평가 <i
+						class="bi bi-chevron-right"></i> <a
+						sec:authorize="hasAnyRole('ROOT', 'ADMIN')"
+						th:href="@{/eval/report/list(periodId=${report.periodId})}">
+						AI 리포트 </a> <span sec:authorize="!hasAnyRole('ROOT', 'ADMIN')">
+						내 리포트 </span> <i class="bi bi-chevron-right"></i> 상세
+				</div>
+				<h1 th:text="|${report.empName}님의 AI 리포트|">홍길동님의 AI 리포트</h1>
+				<p
+					th:text="|${report.periodTitle} · ${report.periodYear} ${report.periodTerm}|">
+					회차 · 2025 H1</p>
+			</div>
+			<div class="sb-page-head__actions">
+				<a sec:authorize="hasAnyRole('ROOT', 'ADMIN')"
+					th:href="@{/eval/report/list(periodId=${report.periodId})}"
+					class="btn btn-ghost btn-sm"> <i class="bi bi-arrow-left"></i>
+					목록으로
+				</a> <a sec:authorize="!hasAnyRole('ROOT', 'ADMIN')"
+					th:href="@{/eval/report/my}" class="btn btn-ghost btn-sm"> <i
+					class="bi bi-arrow-left"></i> 내 리포트 목록
+				</a>
+			</div>
+		</div>
+
+		<div class="row g-3">
+
+			<!-- 좌측: 종합 지표 -->
+			<div class="col-lg-4">
+				<div class="sb-card mb-3">
+					<div class="sb-card__body text-center" style="padding: 32px 20px">
+						<div class="text-faint"
+							style="font-size: 12px; margin-bottom: 8px">최종 등급</div>
+						<div th:text="${report.grade}" class="sb-grade sb-grade--lg"
+							th:classappend="'sb-grade--' + ${#strings.toLowerCase(report.grade)}">
+							S</div>
+						<div class="mt-3">
+							<div class="text-faint" style="font-size: 12px">종합 점수</div>
+							<div style="font-size: 28px; font-weight: 700"
+								th:text="${report.overallScore} + ' / 5.00'">4.20 / 5.00</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- 사원 정보 -->
+				<div class="sb-card mb-3">
+					<div class="sb-card__head">
+						<h3>대상 사원</h3>
+					</div>
+					<div class="sb-card__body">
+						<div class="mb-2">
+							<span class="text-faint" style="font-size: 12px">사번</span>
+							<div style="font-weight: 600" th:text="${report.empNo}">EMP-001</div>
+						</div>
+						<div class="mb-2">
+							<span class="text-faint" style="font-size: 12px">이름</span>
+							<div style="font-weight: 600" th:text="${report.empName}">홍길동</div>
+						</div>
+						<div class="mb-2">
+							<span class="text-faint" style="font-size: 12px">부서</span>
+							<div style="font-weight: 600" th:text="${report.deptName}">부서명</div>
+						</div>
+						<div>
+							<span class="text-faint" style="font-size: 12px">직급</span>
+							<div style="font-weight: 600" th:text="${report.posName}">직급명</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- 감성 분석 -->
+				<div class="sb-card">
+					<div class="sb-card__head">
+						<h3>감성 분석</h3>
+					</div>
+					<div class="sb-card__body">
+						<div class="text-center mb-3">
+							<span class="sb-badge"
+								th:classappend="${report.sentimentLabel == 'POSITIVE'} ? 'sb-badge--green'
+                  : (${report.sentimentLabel == 'NEGATIVE'} ? 'sb-badge--red' : 'sb-badge--gray')"
+								style="font-size: 14px; padding: 6px 14px"
+								th:text="${report.sentimentLabel}">POSITIVE</span>
+						</div>
+
+						<!-- 3분리 감성 바 -->
+						<div style="font-size: 12px">
+							<div class="d-flex justify-content-between mb-1">
+								<span><i class="bi bi-emoji-smile me-1"
+									style="color: #22c55e"></i>긍정</span> <span
+									th:text="${#numbers.formatDecimal(report.sentimentPositive, 1, 0)} + '%'">70%</span>
+							</div>
+							<div class="progress mb-2" style="height: 6px">
+								<div class="progress-bar" role="progressbar"
+									th:style="'width:' + ${report.sentimentPositive} + '%; background:#22c55e'"></div>
+							</div>
+
+							<div class="d-flex justify-content-between mb-1">
+								<span><i class="bi bi-emoji-neutral me-1"
+									style="color: #94a3b8"></i>중립</span> <span
+									th:text="${#numbers.formatDecimal(report.sentimentNeutral, 1, 0)} + '%'">25%</span>
+							</div>
+							<div class="progress mb-2" style="height: 6px">
+								<div class="progress-bar" role="progressbar"
+									th:style="'width:' + ${report.sentimentNeutral} + '%; background:#94a3b8'"></div>
+							</div>
+
+							<div class="d-flex justify-content-between mb-1">
+								<span><i class="bi bi-emoji-frown me-1"
+									style="color: #ef4444"></i>부정</span> <span
+									th:text="${#numbers.formatDecimal(report.sentimentNegative, 1, 0)} + '%'">5%</span>
+							</div>
+							<div class="progress" style="height: 6px">
+								<div class="progress-bar" role="progressbar"
+									th:style="'width:' + ${report.sentimentNegative} + '%; background:#ef4444'"></div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- 우측: 세부 점수 + AI 요약 -->
+			<div class="col-lg-8">
+
+				<!-- 항목별 점수 -->
+				<div class="sb-card mb-3">
+					<div class="sb-card__head">
+						<h3>항목별 평균 점수</h3>
+					</div>
+					<div class="sb-card__body">
+						<div class="mb-3">
+							<div class="d-flex justify-content-between mb-1">
+								<span style="font-weight: 600">성과 <span
+									class="text-faint" style="font-weight: 400">(40%)</span></span> <span
+									th:text="${report.avgPerformance} + ' / 5.00'"
+									style="font-weight: 600">4.50 / 5.00</span>
+							</div>
+							<div class="progress" style="height: 10px">
+								<div class="progress-bar" role="progressbar"
+									th:style="'width:' + ${report.avgPerformance * 20} + '%; background:var(--sb-accent)'"></div>
+							</div>
+						</div>
+						<div class="mb-3">
+							<div class="d-flex justify-content-between mb-1">
+								<span style="font-weight: 600">전문성 <span
+									class="text-faint" style="font-weight: 400">(20%)</span></span> <span
+									th:text="${report.avgExpertise} + ' / 5.00'"
+									style="font-weight: 600">4.00 / 5.00</span>
+							</div>
+							<div class="progress" style="height: 10px">
+								<div class="progress-bar" role="progressbar"
+									th:style="'width:' + ${report.avgExpertise * 20} + '%; background:var(--sb-accent)'"></div>
+							</div>
+						</div>
+						<div class="mb-3">
+							<div class="d-flex justify-content-between mb-1">
+								<span style="font-weight: 600">협업 <span
+									class="text-faint" style="font-weight: 400">(20%)</span></span> <span
+									th:text="${report.avgTeamwork} + ' / 5.00'"
+									style="font-weight: 600">4.20 / 5.00</span>
+							</div>
+							<div class="progress" style="height: 10px">
+								<div class="progress-bar" role="progressbar"
+									th:style="'width:' + ${report.avgTeamwork * 20} + '%; background:var(--sb-accent)'"></div>
+							</div>
+						</div>
+						<div class="mb-3">
+							<div class="d-flex justify-content-between mb-1">
+								<span style="font-weight: 600">태도 <span
+									class="text-faint" style="font-weight: 400">(10%)</span></span> <span
+									th:text="${report.avgAttitude} + ' / 5.00'"
+									style="font-weight: 600">4.00 / 5.00</span>
+							</div>
+							<div class="progress" style="height: 10px">
+								<div class="progress-bar" role="progressbar"
+									th:style="'width:' + ${report.avgAttitude * 20} + '%; background:var(--sb-accent)'"></div>
+							</div>
+						</div>
+						<div>
+							<div class="d-flex justify-content-between mb-1">
+								<span style="font-weight: 600">성장 <span
+									class="text-faint" style="font-weight: 400">(10%)</span></span> <span
+									th:text="${report.avgGrowth} + ' / 5.00'"
+									style="font-weight: 600">3.80 / 5.00</span>
+							</div>
+							<div class="progress" style="height: 10px">
+								<div class="progress-bar" role="progressbar"
+									th:style="'width:' + ${report.avgGrowth * 20} + '%; background:var(--sb-accent)'"></div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- AI 요약 -->
+				<div class="sb-card mb-3">
+					<div class="sb-card__head">
+						<h3>
+							<i class="bi bi-robot me-1" style="color: var(- -sb-accent)"></i>AI
+							종합 요약
+						</h3>
+					</div>
+					<div class="sb-card__body">
+						<div
+							style="white-space: pre-wrap; line-height: 1.7; font-size: 14px"
+							th:text="${report.aiSummary}">AI 요약 내용...</div>
+					</div>
+				</div>
+
+				<!-- 메타 정보 -->
+				<div class="sb-card">
+					<div class="sb-card__body">
+						<div class="d-flex justify-content-between text-faint"
+							style="font-size: 12px">
+							<div>
+								<i class="bi bi-cpu me-1"></i> 모델: <span
+									th:text="${report.modelName}">mock-analyzer-v1</span>
+							</div>
+							<div>
+								<i class="bi bi-clock-history me-1"></i> 생성 시각: <span
+									th:text="${report.generatedAt}">2025-01-01 12:00</span>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+	</section>
+</body>
+</html>

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{fragments/layout}">
+<head>
+	<title>부서 이관 이력</title>
+</head>
+<body data-page="depttranslog">
+<main layout:fragment="content" class="sb-content">
+<div class="sb-card" style="margin-bottom:16px">
+    <div class="sb-toolbar">
+        <span class="fw-semibold"><i class="bi bi-clock-history"></i> 부서 이관 이력</span>
+    </div>
+
+    <!-- 필터 -->
+    <form method="get" th:action="@{/dept/transfer/log}"
+          class="row align-items-end"
+          style="padding:16px 18px; border-top:1px solid var(--sb-border); margin:0">
+        <div class="col-auto" style="min-width:170px">
+            <label class="form-label small fw-semibold mb-1" style="white-space:nowrap">원부서</label>
+            <select name="originDeptId" class="form-select form-select-sm">
+                <option value="">전체</option>
+                <option th:each="d : ${deptOptions}" th:value="${d.deptId}" th:text="${d.deptName}"
+                        th:selected="${search.originDeptId != null and search.originDeptId == d.deptId}"></option>
+            </select>
+        </div>
+        <div class="col-auto" style="min-width:170px">
+            <label class="form-label small fw-semibold mb-1" style="white-space:nowrap">대상부서</label>
+            <select name="targetDeptId" class="form-select form-select-sm">
+                <option value="">전체</option>
+                <option th:each="d : ${deptOptions}" th:value="${d.deptId}" th:text="${d.deptName}"
+                        th:selected="${search.targetDeptId != null and search.targetDeptId == d.deptId}"></option>
+            </select>
+        </div>
+        <div class="col-auto" style="min-width:150px">
+            <label class="form-label small fw-semibold mb-1" style="white-space:nowrap">AI 제안 여부</label>
+            <select name="aiRecommended" class="form-select form-select-sm">
+                <option value="" th:selected="${search.aiRecommended == null or search.aiRecommended == ''}">전체</option>
+                <option value="Y" th:selected="${search.aiRecommended == 'Y'}">AI 추천 수용</option>
+                <option value="N" th:selected="${search.aiRecommended == 'N'}">수동 선택</option>
+            </select>
+        </div>
+        <div class="col-auto" style="min-width:160px">
+            <label class="form-label small fw-semibold mb-1" style="white-space:nowrap">처리일자(시작)</label>
+            <input type="date" name="dateFrom" class="form-control form-control-sm" th:value="${search.dateFrom}">
+        </div>
+        <div class="col-auto" style="min-width:160px">
+            <label class="form-label small fw-semibold mb-1" style="white-space:nowrap">처리일자(종료)</label>
+            <input type="date" name="dateTo" class="form-control form-control-sm" th:value="${search.dateTo}">
+        </div>
+        <!-- 필터를 바꿔 재조회하면 1페이지부터 다시 (onepagelist는 유지) -->
+        <input type="hidden" name="pstartno" value="1">
+        <div class="col-auto d-flex gap-2">
+            <button type="submit" class="btn btn-sb btn-sm px-3" style="white-space:nowrap; flex-shrink:0">
+                <i class="bi bi-search"></i> 조회
+            </button>
+            <a th:href="@{/dept/transfer/log}" class="btn btn-ghost btn-sm px-3" style="white-space:nowrap; flex-shrink:0">초기화</a>
+        </div>
+    </form>
+
+    <div class="px-3 pt-2" style="font-size:12px; color:var(--sb-ink-faint)">
+        <i class="bi bi-info-circle"></i>
+        처리일자를 지정하지 않으면 기본으로 <b>최근 30일</b>만 조회합니다. 전체 기간을 보려면 시작일을 더 과거로 넓혀서 조회하세요.
+    </div>
+
+    <div class="sb-card__body--flush" style="margin-top:8px">
+        <table class="sb-table" th:if="${not #lists.isEmpty(logs)}">
+            <thead>
+                <tr>
+                    <th style="width:150px">처리일자</th>
+                    <th>원부서</th>
+                    <th>대상부서</th>
+                    <th>사원</th>
+                    <th style="width:110px">AI 제안</th>
+                    <th>AI 사유</th>
+                    <th style="width:100px">처리자</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="l : ${logs}">
+                    <td th:text="${l.createdAt}"></td>
+                    <td th:text="${l.originDeptName}"></td>
+                    <td th:text="${l.targetDeptName}"></td>
+                    <td th:text="${l.empName} + ' (' + ${l.empNo} + ')'"></td>
+                    <td>
+                        <span th:if="${l.aiRecommended == 'Y'}" class="sb-badge sb-badge--accent">
+                            <i class="bi bi-stars"></i> 수용
+                        </span>
+                        <span th:unless="${l.aiRecommended == 'Y'}" class="sb-badge sb-badge--gray">수동</span>
+                    </td>
+                    <td style="max-width:280px; font-size:12.5px; color:var(--sb-ink-soft)"
+                        th:text="${l.aiReason != null ? l.aiReason : '-'}"></td>
+                    <td th:text="${l.createdByName}"></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="sb-empty" th:if="${#lists.isEmpty(logs)}">
+            <i class="bi bi-inbox"></i>
+            <p>조건에 해당하는 이관 이력이 없습니다.</p>
+        </div>
+
+        <!-- 페이지네이션 (PagingUtil: current/start/end/pagetotal 기준, 10페이지 단위 블록) -->
+        <nav th:if="${paging.pagetotal > 1}"
+             style="display:flex; justify-content:center; align-items:center; gap:6px; padding:16px">
+            <a th:if="${paging.start > 1}"
+               th:href="@{/dept/transfer/log(pstartno=${paging.start - 1}, onepagelist=${search.onepagelist}, originDeptId=${search.originDeptId}, targetDeptId=${search.targetDeptId}, aiRecommended=${search.aiRecommended}, dateFrom=${search.dateFrom}, dateTo=${search.dateTo})}"
+               class="btn btn-ghost btn-sm"><i class="bi bi-chevron-left"></i></a>
+
+            <a th:each="p : ${#numbers.sequence(paging.start, paging.end)}"
+               th:href="@{/dept/transfer/log(pstartno=${p}, onepagelist=${search.onepagelist}, originDeptId=${search.originDeptId}, targetDeptId=${search.targetDeptId}, aiRecommended=${search.aiRecommended}, dateFrom=${search.dateFrom}, dateTo=${search.dateTo})}"
+               th:text="${p}"
+               th:classappend="${p == paging.current} ? ' btn-sb' : ' btn-ghost'"
+               class="btn btn-sm" style="min-width:34px; text-align:center"></a>
+
+            <a th:if="${paging.end < paging.pagetotal}"
+               th:href="@{/dept/transfer/log(pstartno=${paging.end + 1}, onepagelist=${search.onepagelist}, originDeptId=${search.originDeptId}, targetDeptId=${search.targetDeptId}, aiRecommended=${search.aiRecommended}, dateFrom=${search.dateFrom}, dateTo=${search.dateTo})}"
+               class="btn btn-ghost btn-sm"><i class="bi bi-chevron-right"></i></a>
+        </nav>
+
+        <div th:if="${paging.listtotal > 0}" style="text-align:center; font-size:12px; color:var(--sb-ink-faint); padding-bottom:14px">
+            전체 <span th:text="${paging.listtotal}"></span>건 · <span th:text="${paging.current}"></span> / <span th:text="${paging.pagetotal}"></span> 페이지
+        </div>
+    </div>
+</div>
+</main>
+</body>
+</html>

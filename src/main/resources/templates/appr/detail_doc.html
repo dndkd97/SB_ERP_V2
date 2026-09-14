@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{fragments/layout.html}">
+<head>
+	<title>결재 문서 상세</title>
+	<link rel="stylesheet" th:href="@{/css/summernote-lite.min.css}"/>
+</head>
+<body>
+
+<main layout:fragment="content">
+
+<!-- 토스트 / 안내 문구 -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3"
+	 style="z-index: 1080;" id="toastContainer"></div>
+<div id="flashToastData"
+	 th:if="${toastMsg}"
+	 th:attr="data-type=${toastType} ?: 'info', data-msg=${toastMsg}"
+	 style="display: none;"></div>
+<script th:src="@{/js/appr-toast.js}"></script>
+
+<div class="sb-page-head">
+	<div class="sb-page-head__txt">
+		<div class="sb-breadcrumb">
+ 		<a th:href="@{/appr/list_doc}">전자결재</a>
+ 		<i class="bi bi-chevron-right"></i>
+ 		<span>문서 상세</span>
+		</div>
+		<h1 th:text="${doc.docTitle}">문서 제목</h1>
+	</div>
+	<div class="sb-page-head__actions">
+ 	<button type="button" class="btn btn-ghost"
+ 			th:onclick="|location.href='@{/appr/list_doc}'|">
+ 			목록으로
+ 	</button>
+	</div>
+</div>
+
+<div class="row g-4 mb-4">
+	<div class="col-lg-5">
+		<div class="sb-card equal-height-card">
+			<div class="sb-card__head">
+				<h2>문서 정보</h2>
+			</div>
+			<div class="sb-card__body">
+				<div class="mb-3">
+					<label class="sb-form-label text-muted small">기안자</label>
+					<div class="view-val fw-bold" th:text="${doc.empName}">이름</div>
+				</div>
+				<div class="mb-3">
+					<label class="sb-form-label text-muted small">기안일시</label>
+					<div class="view-val text-secondary" th:text="${doc.createdAt}">날짜</div>
+				</div>
+				<div>
+					<label class="sb-form-label text-muted small">결재 상태</label>
+					<div class="d-flex align-items-center gap-3 mt-1">
+						<div>
+							<span th:if="${doc.docStatus == 'ING'}" class="sb-badge sb-badge--blue">진행중</span>
+							<span th:if="${doc.docStatus == 'APP'}" class="sb-badge sb-badge--green">최종승인</span>
+							<span th:if="${doc.docStatus == 'REJ'}" class="sb-badge sb-badge--red">반려됨</span>
+						</div>
+						<div class="mini-status-staps d-flex align-items-center gap-1 text-muted small">
+							<span class="step-item text-dark fw-bold">기안</span>
+							<i class="bi bi-chevron-right text-black-50"></i>
+							<span class="step-item"
+								  th:classappend="${doc.docStatus == 'ING' ? ' text-primary fw-bold' : ''}">검토</span>
+							<i class="bi bi-chevron-right text-black-50"></i>
+							<span class="step-item"
+								  th:classappend="${doc.docStatus == 'APP' ? 'text-success fw-bold' :
+								  				   (doc.docStatus == 'REJ' ? 'text-danger fw-bold' : '')}">완료</span>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+		
+	<div class="col-lg-7">
+		<div class="sb-card equal-height-card">
+			<div class="sb-card__head">
+				<h2>결재선</h2>
+			</div>
+			<div class="sb-card__body">
+				<div class="appr-timeline scrollable-timeline">
+					<!-- 기안자 -->
+					<div class="appr-timeline__item">
+						<div class="appr-timeline__avatar role-draft"
+							 th:text="${#strings.substring(doc.empName,0,1)}">기</div>
+						<div class="appr-timeline__body">
+							<div class="appr-timeline__name" th:text="${doc.empName}">기안자</div>
+							<div class="appr-timeline__time" th:text="${doc.createdAt}">기안일</div>
+						</div>
+						<div class="appr-timeline__status">
+							<span class="sb-badge sb-badge--gray">기안</span>
+						</div>
+					</div>
+				
+					<!-- 결재선 -->
+					<div class="appr-timeline__item" th:each="line : ${lines}"
+						 th:with="roleClass=${line.linStatus == 'APP'} ? 'role-app' :
+						 		 		   (${line.linStatus == 'REJ'} ? 'role-rej' :
+						 		 		   (${line.linStatus == 'WAI'} ? 'role-wai' : 'role-not'))">
+						<div class="appr-timeline__avatar" th:classappend="${roleClass}"
+							 th:text="${#strings.substring(line.empName,0,1)}">결</div>
+						<div class="appr-timeline__body">
+							<div class="appr-timeline__name" th:text="${line.empName}">이름</div>
+							<div class="appr-timeline__pos" th:text="${line.posName}">직책</div>
+							<div class="appr-timeline__time" th:if="${line.linApproved != null}"
+								 th:text="${line.linApproved}">일시</div>
+						</div>
+						<div class="appr-timeline__status">
+							<span th:if="${line.linStatus == 'WAI'}"
+								  class="sb-badge sb-badge--amber">검토중</span>
+							<span th:if="${line.linStatus == 'NOT'}"
+								  class="sb-badge sb-badge--gray">대기</span>
+							<span th:if="${line.linStatus == 'APP'}"
+								  class="sb-badge sb-badge--green">승인</span>
+							<span th:if="${line.linStatus == 'REJ'}"
+								  class="sb-badge sb-badge--red">반려</span>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>	
+
+<div class="sb-card mb-4">
+	<div class="sb-card__head">
+		<h2>문서내용</h2>
+	</div>
+	<div class="sb-card__body">
+		<div class="approval-document-wrap document-content-area"
+			 th:utext="${doc.docContent}"></div>
+	</div>
+</div>
+
+<div class="d-flex justify-content-end gap-2 mb-4" th:if="${canProcess}">
+	<button type="button" class="btn btn-outline-secondary px-4"
+			th:onclick="|openDelegateModal(${doc.docId})|">
+		<i class="bi bi-person-gear"></i> 위임 요청
+	</button>
+	<form th:action="@{/appr/detail_doc/rej}" method="post" class="d-inline">
+		<input type="hidden" name="docId" th:value="${doc.docId}"/>
+		<button type="submit" class="btn btn-outline-danger px-4"
+				onclick="return confirm('반려하시겠습니까?')">반려</button>
+	</form>
+	<form th:action="@{/appr/detail_doc/app}" method="post" class="d-inline">
+		<input type="hidden" name="docId" th:value="${doc.docId}"/>
+		<button type="submit" class="btn btn-primary px-4"
+				onclick="return confirm('승인하시겠습니까?')">승인</button>
+	</form>
+</div>
+	
+	<!-- jquery 로드 -->
+	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+	
+	<!-- js파일 로드 -->
+	<script th:src="@{/js/summernote-lite.min.js}"></script>
+
+
+
+</main>
+</body>
+</html>

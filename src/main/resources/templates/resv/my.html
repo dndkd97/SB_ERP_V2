@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{fragments/layout}">
+<head>
+    <title>자원 예약 관리</title>
+</head>
+<body data-page="resvmy">
+<main layout:fragment="content" class="sb-content">
+  <div class="sb-page-head">
+    <div class="sb-page-head__txt">
+      <div class="sb-breadcrumb">
+        <i class="bi bi-house-door"></i> 홈
+        <i class="bi bi-chevron-right"></i> 자산
+        <i class="bi bi-chevron-right"></i> 내 자원 요청 관리
+      </div>
+      <h1>내 자원 요청 관리</h1>
+      <p>본인이 신청한 자원 예약의 기간별 진행 상태를 확인합니다.</p>
+    </div>
+    <div class="sb-page-head__actions">
+      <a th:href="@{/resv/insert}" class="btn btn-sb btn-sm">
+        <i class="bi bi-calendar2-plus"></i> 예약 신청
+      </a>
+    </div>
+  </div>
+
+  <div class="sb-card">
+    <div class="sb-card__head">
+      <h2>예약 목록</h2>
+      <div class="right">
+        <div class="sb-segment">
+          <a th:href="@{/resv/my}"
+             th:classappend="${#strings.isEmpty(search?.status)} ? 'active'">전체</a>
+          <a th:href="@{/resv/my(status='WAI')}"
+             th:classappend="${search?.status == 'WAI'} ? 'active'">
+             <i class="bi bi-hourglass-split"></i> 대기</a>
+          <a th:href="@{/resv/my(status='APP')}"
+             th:classappend="${search?.status == 'APP'} ? 'active'">
+             <i class="bi bi-check-circle"></i> 승인</a>
+          <a th:href="@{/resv/my(status='REJ')}"
+             th:classappend="${search?.status == 'REJ'} ? 'active'">
+             <i class="bi bi-x-circle"></i> 반려</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- 검색/필터 툴바 : 자원유형 + 신청기간(시작~종료) -->
+    <form th:action="@{/resv/my}" method="get" class="sb-toolbar sb-search-form">
+      <input type="hidden" name="status" th:value="${search?.status}"/>
+
+      <div class="sb-field">
+        <select name="resType" class="form-select form-select-sm" style="width:140px">
+          <option value="">자원유형 전체</option>
+          <option value="ROOM"      th:selected="${search?.resType == 'ROOM'}">회의실</option>
+          <option value="EQUIPMENT" th:selected="${search?.resType == 'EQUIPMENT'}">장비</option>
+          <option value="VEHICLE"   th:selected="${search?.resType == 'VEHICLE'}">차량</option>
+        </select>
+      </div>
+
+      <div class="sb-field sb-field--date">
+        <i class="bi bi-calendar-event"></i>
+        <input type="date" name="startDt" class="form-control form-control-sm" th:value="${search?.startDt}" />
+      </div>
+      <span class="text-faint" style="font-size:12.5px">~</span>
+      <div class="sb-field">
+        <input type="date" name="endDt" class="form-control form-control-sm" th:value="${search?.endDt}" />
+      </div>
+
+      <div class="sb-field sb-field--search grow">
+        <i class="bi bi-search"></i>
+        <input type="text" name="keyword" class="form-control form-control-sm"
+               placeholder="자원명으로 검색" th:value="${search?.keyword}" />
+      </div>
+
+      <button type="submit" class="btn btn-sb btn-sm">검색</button>
+
+      <!-- 안내 문구 : 항상 다음 줄에 전체 너비로 줄바꿈 -->
+      <div class="sb-search-note">
+        <i class="bi bi-info-circle"></i>
+        신청 일자를 지정하지 않으면 기본으로 <b>최근 30일</b>만 조회합니다. 전체 기간을 보려면 시작일을 더 과거로 넓혀서 조회하세요.
+      </div>
+    </form>
+
+    <div class="sb-card__body--flush">
+      <table class="sb-table">
+        <thead>
+          <tr>
+            <th>순서</th>
+            <th>자원명</th>
+            <th>유형</th>
+            <th>위치</th>
+            <th class="num">수량</th>
+            <th>장비예약시작일</th>
+            <th>장비예약종료일</th>
+            <th>반납</th>
+            <th>상태</th>
+            <th>승인자 / 반려사유</th>
+            <th style="width:170px; text-align: center">관리</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr th:if="${#lists.isEmpty(list)}">
+            <td colspan="12" class="text-center text-faint py-4">예약 내역이 없습니다.</td>
+          </tr>
+          <tr th:each="r,status : ${list}">
+            <td th:text="${(paging?.listtotal ?: 0) - (paging?.pstartno ?: 0) - status.index}"></td>
+
+            <td><b th:text="${r.resName}"></b></td>
+
+            <td>
+              <span th:switch="${r.resType}">
+                <span th:case="'ROOM'"      class="sb-badge sb-badge--blue"><i class="bi bi-door-open"></i> 회의실</span>
+                <span th:case="'EQUIPMENT'" class="sb-badge sb-badge--violet"><i class="bi bi-tools"></i> 장비</span>
+                <span th:case="'VEHICLE'"   class="sb-badge sb-badge--cyan"><i class="bi bi-truck"></i> 차량</span>
+                <span th:case="*" class="sb-badge sb-badge--gray" th:text="${r.resType}"></span>
+              </span>
+            </td>
+            <td class="sb-table__muted" th:text="${#strings.isEmpty(r.location) ? '-' : r.location}"></td>
+            <td class="num" th:text="${r.quantity}"></td>
+            <td th:text="${r.startDt}"></td>
+            <td th:text="${r.endDt}"></td>
+            <td>
+              <span th:if="${r.returnDt != null}"
+                    class="sb-badge sb-badge--green"
+                    th:text="${r.returnDt}"></span>
+              <span th:if="${r.returnDt == null and r.status == 'APP'}"
+                    class="sb-badge sb-badge--amber">미반납</span>
+              <span th:if="${r.returnDt == null and r.status != 'APP'}"
+                    class="text-faint">-</span>
+            </td>
+
+            <td>
+              <span th:switch="${r.status}">
+                <span th:case="'WAI'" class="sb-badge sb-badge--amber">대기</span>
+                <span th:case="'APP'" class="sb-badge sb-badge--green">승인</span>
+                <span th:case="'REJ'" class="sb-badge sb-badge--red">반려</span>
+                <span th:case="*"  class="sb-badge" th:text="${r.status}"></span>
+              </span>
+            </td>
+
+            <td style="font-size:12.5px; max-width:180px">
+              <div th:if="${r.status == 'APP'}">
+                <div th:text="${r.approvedEmpName}"></div>
+                <div class="text-faint" th:text="${r.approvedAt}"></div>
+              </div>
+              <div th:if="${r.status == 'REJ'}" class="text-danger" th:text="${r.rejectReason}"></div>
+              <div th:if="${r.status == 'WAI'}" class="text-faint">-</div>
+            </td>
+
+            <td>
+            	<div class="d-flex justify-content-end gap-1">
+                 	<a class="sb-iconbtn" th:href="@{/resv/detail(revId=${r.revId})}" title="상세보기">
+                        <i class="bi bi-book"></i>
+                    </a>
+                    <a class="sb-iconbtn"
+                       th:if="${r.status == 'WAI'}" 
+                       th:href="@{/resv/edit(revId=${r.revId})}" title="수정">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                    
+                    <button type="button" class="sb-iconbtn resv-del"
+                    		th:if="${r.status == 'WAI'}"
+                    	    style="color:var(--sb-red)"
+                            data-bs-toggle="modal" data-bs-target="#cancelModal"
+                            th:attr="data-id=${r.revId}"
+                            title="취소">
+                    	<i class="bi bi-trash3"></i>
+					</button>
+				</div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 페이지네이션 -->
+  <div class="d-flex align-items-center justify-content-between px-3 py-2"
+       style="border-top:1px solid var(--sb-border)">
+    <span class="text-faint" style="font-size:12.5px">
+      총 <b th:text="${paging?.listtotal ?: 0}"></b>개 예약 건수
+    </span>
+    <nav th:if="${(paging?.pagetotal ?: 0) > 1}" aria-label="페이지 이동">
+      <ul class="pagination pagination-sm mb-0">
+        <li class="page-item" th:classappend="${paging.start <= 1} ? 'disabled'">
+          <a class="page-link"
+             th:href="@{/resv/list(status=${search?.status}, resType=${search?.resType}, startDate=${search?.startDate}, endDate=${search?.endDate}, keyword=${search?.keyword}, onepagelist=${paging.onepagelist}, pstartno=${paging.start - 1})}"
+             aria-label="이전"><i class="bi bi-chevron-left"></i></a>
+        </li>
+        <li class="page-item" th:each="p : ${#numbers.sequence(paging.start, paging.end)}"
+            th:classappend="${p == paging.current} ? 'active'">
+          <a class="page-link"
+             th:href="@{/resv/list(status=${search?.status}, resType=${search?.resType}, startDate=${search?.startDate}, endDate=${search?.endDate}, keyword=${search?.keyword}, onepagelist=${paging.onepagelist}, pstartno=${p})}"
+             th:text="${p}"></a>
+        </li>
+        <li class="page-item" th:classappend="${paging.end >= paging.pagetotal} ? 'disabled'">
+          <a class="page-link"
+             th:href="@{/resv/list(status=${search?.status}, resType=${search?.resType}, startDate=${search?.startDate}, endDate=${search?.endDate}, keyword=${search?.keyword}, onepagelist=${paging.onepagelist}, pstartno=${paging.end + 1})}"
+             aria-label="다음"><i class="bi bi-chevron-right"></i></a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+  <div th:replace="~{resv/modal/cancelModal :: cancelModal}"></div>
+</main>
+
+<th:block layout:fragment="script">
+  <div th:replace="~{resv/modal/cancelModal :: cancelModalScript}"></div>
+</th:block>
+</body>
+</html>

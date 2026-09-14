@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sb.erp.dao.ApprLineRequestMapper">
+
+	<resultMap id="apprLineRequestMap" type="ApprLineRequestDto">
+		<id property="reqId" column="req_id" />
+		<result property="docId" column="doc_id" />
+		<result property="linId" column="lin_id" />
+		<result property="oriEmpId" column="ori_emp_id" />
+		<result property="newEmpId" column="new_emp_id" />
+		<result property="reqEmpId" column="req_emp_id" />
+		<result property="proEmpId" column="pro_emp_id" />
+		<result property="reqReason" column="req_reason" />
+		<result property="reqStatus" column="req_status" />
+		<result property="createdAt" column="created_at" />
+		<result property="processedAt" column="processed_at" />
+	</resultMap>
+
+	<!-- 결재선 변경 요청 등록 -->
+	<insert id="insertRequest" parameterType="ApprLineRequestDto">
+		<selectKey keyProperty="reqId" resultType="int" order="BEFORE">
+			select appr_line_request_seq.nextval from dual
+		</selectKey>
+		insert into appr_line_request(
+			req_id,
+			doc_id,
+			lin_id,
+			ori_emp_id,
+			new_emp_id,
+			req_emp_id,
+			req_reason,
+			req_status
+		) values (
+			#{reqId},
+			#{docId},
+			#{linId},
+			#{oriEmpId},
+			#{newEmpId},
+			#{reqEmpId},
+			#{reqReason}
+		)
+	</insert>
+	
+	<!-- 대기중인 요청 목록 / 관리자용 -->
+	<select id="selectPendingRequests" resultType="ApprLineRequestDto">
+		select
+			r.req_id,
+			r.doc_id,
+			r.lin_id,
+			r.ori_emp_id,
+			r.new_emp_id,
+			r.req_emp_id,
+			r.req_reason,
+			r.req_status,
+			r.created_at,
+			d.doc_title as docTitle,
+			eo.emp_name as oriEmpName,
+			en.emp_name as newEmpName,
+			er.emp_name as reqEmpName
+		from
+			appr_line_request r
+		join
+			appr_doc d on r.doc_id = d.doc_id
+		join
+			employee eo on r.ori_emp_id = eo.emp_id
+		left join
+			employee en on r.new_emp_id = en.emp_id
+		join
+			employee er on r.req_emp_id = er.emp_id
+		where
+			r.req_status = 'REQ'
+		order by
+			r.created_at asc
+	</select>
+	
+	<!-- 대기중인 요청 개수 -->
+	<select id="countPending" resultType="int">
+		select count(*) from appr_line_request where req_status = 'REQ'
+	</select>
+	
+	<!-- 요청 단건 조회 / 승,반 처리시 검증용-->
+	<select id="selectRequestById" parameterType="int" resultType="ApprLineRequestDto">
+		select
+			req_id,
+			doc_id,
+			lin_id,
+			ori_emp_id,
+			new_emp_id,
+			req_emp_id,
+			req_reason,
+			req_status
+		from
+			appr_line_request
+		where
+			req_id = #{reqId}
+	</select>
+	
+	<!-- 요청 상태변경 -->
+	<update id="updateRequestStatus" parameterType="ApprLineRequestDto">
+		update
+			appr_line_request
+		set
+			req_status = #{reqStatus},
+			new_emp_id = #{newEmpId},
+			pro_emp_id = #{proEmpId},
+			processed_at = sysdate
+		where
+			req_id = #{reqId}
+			and req_status = 'REQ'
+	</update>
+</mapper>

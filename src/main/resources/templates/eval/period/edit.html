@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+	xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	layout:decorate="~{fragments/layout}">
+<head>
+<title>회차 수정</title>
+</head>
+<body>
+	<section class="eval_period_edit sb-content" layout:fragment="content">
+
+		<!-- 페이지 헤더 -->
+		<div class="sb-page-head">
+			<div class="sb-page-head__txt">
+				<div class="sb-breadcrumb">
+					<a th:href="@{/}">홈</a> <i class="bi bi-chevron-right"></i> <a
+						th:href="@{/eval/period/list}">회차 관리</a> <i
+						class="bi bi-chevron-right"></i> <a
+						th:href="@{/eval/period/detail(periodId=${period.periodId})}"
+						th:text="${period.title}">회차 상세</a> <i class="bi bi-chevron-right"></i>
+					회차 수정
+				</div>
+				<h1>회차 수정</h1>
+				<p>회차 정보를 수정합니다. 평가 연도와 반기는 변경할 수 없습니다.</p>
+			</div>
+			<div class="sb-page-head__actions">
+				<a th:href="@{/eval/period/detail(periodId=${period.periodId})}"
+					class="btn btn-ghost btn-sm"> <i class="bi bi-arrow-left"></i>
+					상세로
+				</a>
+			</div>
+		</div>
+
+		<!-- Flash 메시지 -->
+		<div th:if="${errorMsg}" class="sb-alert sb-alert--danger mb-3">
+			<i class="bi bi-exclamation-circle me-2"></i> <span
+				th:text="${errorMsg}">메시지</span>
+		</div>
+
+		<div class="sb-card mb-3">
+			<div class="sb-card__head">
+				<h2>
+					<i class="bi bi-calendar-event me-2 text-soft"></i> 회차 정보
+				</h2>
+			</div>
+			<div class="sb-card__body">
+
+				<form th:action="@{/eval/period/edit}" method="post"
+					onsubmit="return checkForm()">
+					<input type="hidden" name="periodId" th:value="${period.periodId}" />
+
+					<div class="row g-3">
+						<div class="col-md-6">
+							<label for="evalYear" class="sb-form-label">평가 연도</label> <input
+								type="text" class="form-control rdOnly" id="evalYear"
+								th:value="${period.evalYear}" readonly /> <small
+								class="text-faint">등록 후 변경할 수 없습니다.</small>
+						</div>
+
+						<div class="col-md-6">
+							<label for="evalTerm" class="sb-form-label">평가 반기</label> <input
+								type="text" class="form-control rdOnly" id="evalTerm"
+								th:value="${period.evalTerm}" readonly /> <small
+								class="text-faint">등록 후 변경할 수 없습니다.</small>
+						</div>
+
+						<div class="col-12">
+							<label for="title" class="sb-form-label">회차 제목 <span>*</span></label>
+							<input type="text" class="form-control" id="title" name="title"
+								th:value="${period.title}" maxlength="100" required />
+						</div>
+
+						<div class="col-md-6">
+							<label for="startDate" class="sb-form-label">시작일 <span>*</span></label>
+							<input type="date" class="form-control" id="startDate"
+								name="startDate" th:value="${period.startDate}" required />
+						</div>
+
+						<div class="col-md-6">
+							<label for="endDate" class="sb-form-label">종료일 <span>*</span></label>
+							<input type="date" class="form-control" id="endDate"
+								name="endDate" th:value="${period.endDate}" required />
+						</div>
+					</div>
+
+					<div class="sb-form-actions">
+						<a th:href="@{/eval/period/detail(periodId=${period.periodId})}"
+							class="btn btn-ghost">취소</a>
+						<button type="submit" class="btn btn-sb">
+							<i class="bi bi-check-lg"></i> 수정
+						</button>
+					</div>
+				</form>
+			</div>
+		</div>
+
+	</section>
+
+	<th:block layout:fragment="script">
+		<script>
+    function checkForm() {
+        const startDate = document.getElementById("startDate").value;
+        const endDate = document.getElementById("endDate").value;
+
+        if (startDate && endDate && startDate > endDate) {
+            alert("종료일은 시작일 이후여야 합니다.");
+            return false;
+        }
+        return true;
+    }
+</script>
+	</th:block>
+</body>
+</html>

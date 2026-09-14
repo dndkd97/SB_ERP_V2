@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{fragments/layout}">
+<head>
+    <title>관리자 대시보드</title>
+    <link rel="stylesheet" th:href="@{/css/dashboard-admin.css}">
+</head>
+<body data-page="dashboard-admin">
+<div layout:fragment="content">
+
+    <!-- ==========================================================
+         TODO: 관리자 대시보드 - 전부 하드코딩 상태입니다.
+         추후 AdminDashboardController + Mapper 연동 시
+         employee / department / appr_doc / notice / system_log 등
+         전사 집계 쿼리 결과로 교체 예정
+         ========================================================== -->
+
+    <div class="sb-page-head db-page-head--sticky">
+        <div class="sb-page-head__txt">
+            <h1>관리자 대시보드</h1>
+            <p>전사 현황을 한눈에 확인하세요 · <span th:text="${#temporals.format(today, 'yyyy년 MM월 dd일 (E)')}">2026년 07월 09일</span></p>
+        </div>
+        <div class="sb-page-head__actions">
+            <a href="#" class="btn btn-sb-soft btn-sm"><i class="bi bi-person-plus"></i>&nbsp;직원 등록</a>
+            <a href="#" class="btn btn-sb btn-sm"><i class="bi bi-megaphone"></i>&nbsp;공지 작성</a>
+        </div>
+    </div>
+
+    <!-- 전사 통계 카드 -->
+    <div class="db-stat-grid mb-3">
+        <div class="sb-stat">
+            <div class="sb-stat__top">
+                <span class="sb-stat__ico tone-blue"><i class="bi bi-people-fill"></i></span>
+                <span class="sb-stat__label">전체 임직원</span>
+            </div>
+            <div class="sb-stat__val">248<span style="font-size:14px;font-weight:650;">명</span></div>
+            <span class="sb-stat__delta up"><i class="bi bi-arrow-up-short"></i>이번달 신규 5명</span>
+        </div>
+        <div class="sb-stat">
+            <div class="sb-stat__top">
+                <span class="sb-stat__ico tone-green"><i class="bi bi-door-open-fill"></i></span>
+                <span class="sb-stat__label">오늘 출근율</span>
+            </div>
+            <div class="sb-stat__val">96.4<span style="font-size:14px;font-weight:650;">%</span></div>
+            <span class="sb-stat__delta flat"><i class="bi bi-dash"></i>출근 239 · 연차 6 · 결근 3</span>
+        </div>
+        <div class="sb-stat">
+            <div class="sb-stat__top">
+                <span class="sb-stat__ico tone-amber"><i class="bi bi-file-earmark-text"></i></span>
+                <span class="sb-stat__label">전사 결재 대기</span>
+            </div>
+            <div class="sb-stat__val">27<span style="font-size:14px;font-weight:650;">건</span></div>
+            <span class="sb-stat__delta up"><i class="bi bi-arrow-up-short"></i>지난주 대비 +4건</span>
+        </div>
+        <div class="sb-stat">
+            <div class="sb-stat__top">
+                <span class="sb-stat__ico tone-violet"><i class="bi bi-person-badge-fill"></i></span>
+                <span class="sb-stat__label">채용 진행중</span>
+            </div>
+            <div class="sb-stat__val">4<span style="font-size:14px;font-weight:650;">건</span></div>
+            <span class="sb-stat__delta flat"><i class="bi bi-check2"></i>지원자 62명</span>
+        </div>
+        <div class="sb-stat">
+            <div class="sb-stat__top">
+                <span class="sb-stat__ico tone-cyan"><i class="bi bi-cash-coin"></i></span>
+                <span class="sb-stat__label">이번달 급여 집행</span>
+            </div>
+            <div class="sb-stat__val">D-6</div>
+            <span class="sb-stat__delta flat"><i class="bi bi-dash"></i>지급 예정일 07/25</span>
+        </div>
+        <div class="sb-stat">
+            <div class="sb-stat__top">
+                <span class="sb-stat__ico tone-red"><i class="bi bi-exclamation-triangle-fill"></i></span>
+                <span class="sb-stat__label">연차 미승인</span>
+            </div>
+            <div class="sb-stat__val">5<span style="font-size:14px;font-weight:650;">건</span></div>
+            <span class="sb-stat__delta down"><i class="bi bi-arrow-down-short"></i>처리 필요</span>
+        </div>
+    </div>
+
+    <div class="db-admin-grid">
+
+        <!-- 부서별 인원 / 근태 현황 -->
+        <div class="sb-card db-card db-card--dept">
+            <div class="sb-card__head">
+                <h2>부서별 인원 · 근태 현황</h2>
+                <span class="sub">오늘 기준</span>
+                <div class="right">
+                    <a href="#" class="btn btn-sb-soft btn-sm">인사관리 바로가기 <i class="bi bi-arrow-right"></i></a>
+                </div>
+            </div>
+            <div class="sb-card__body sb-card__body--flush">
+                <div class="table-responsive">
+                <table class="sb-table">
+                    <thead>
+                        <tr>
+                            <th>부서</th>
+                            <th>인원</th>
+                            <th>출근</th>
+                            <th>연차/휴가</th>
+                            <th>결근</th>
+                            <th>출근율</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="sb-table__name">개발팀</td>
+                            <td>52명</td>
+                            <td>49명</td>
+                            <td>3명</td>
+                            <td>0명</td>
+                            <td><div class="sb-progress" style="width:80px;"><span style="width:94%;"></span></div></td>
+                        </tr>
+                        <tr>
+                            <td class="sb-table__name">인사팀</td>
+                            <td>18명</td>
+                            <td>17명</td>
+                            <td>1명</td>
+                            <td>0명</td>
+                            <td><div class="sb-progress" style="width:80px;"><span style="width:94%;"></span></div></td>
+                        </tr>
+                        <tr>
+                            <td class="sb-table__name">영업팀</td>
+                            <td>63명</td>
+                            <td>58명</td>
+                            <td>2명</td>
+                            <td>3명</td>
+                            <td><div class="sb-progress" style="width:80px;"><span style="width:92%;"></span></div></td>
+                        </tr>
+                        <tr>
+                            <td class="sb-table__name">총무팀</td>
+                            <td>21명</td>
+                            <td>21명</td>
+                            <td>0명</td>
+                            <td>0명</td>
+                            <td><div class="sb-progress" style="width:80px;"><span style="width:100%;"></span></div></td>
+                        </tr>
+                        <tr>
+                            <td class="sb-table__name">마케팅팀</td>
+                            <td>34명</td>
+                            <td>32명</td>
+                            <td>2명</td>
+                            <td>0명</td>
+                            <td><div class="sb-progress" style="width:80px;"><span style="width:94%;"></span></div></td>
+                        </tr>
+                    </tbody>
+                </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 시스템 알림 -->
+        <div class="sb-card db-card db-card--sysalert">
+            <div class="sb-card__head">
+                <h2>처리 필요 항목</h2>
+                <div class="right"><a href="#" class="btn btn-sb-soft btn-sm">전체보기</a></div>
+            </div>
+            <div class="sb-card__body sb-card__body--flush">
+                <div class="db-row">
+                    <span class="db-row__icon tone-red"><i class="bi bi-calendar-x-fill"></i></span>
+                    <div class="db-row__main">
+                        <div class="db-row__title"><span class="txt">연차 승인 대기</span></div>
+                        <div class="db-row__meta">5건 · 최고 대기일 3일</div>
+                    </div>
+                    <span class="db-row__side sb-badge sb-badge--red">긴급</span>
+                </div>
+                <div class="db-row">
+                    <span class="db-row__icon tone-amber"><i class="bi bi-person-badge"></i></span>
+                    <div class="db-row__main">
+                        <div class="db-row__title"><span class="txt">채용 서류 검토 대기</span></div>
+                        <div class="db-row__meta">개발팀 백엔드 · 12건</div>
+                    </div>
+                    <span class="db-row__side sb-badge sb-badge--amber">대기</span>
+                </div>
+                <div class="db-row">
+                    <span class="db-row__icon tone-blue"><i class="bi bi-file-earmark-text"></i></span>
+                    <div class="db-row__main">
+                        <div class="db-row__title"><span class="txt">최종 결재선 미지정 문서</span></div>
+                        <div class="db-row__meta">2건 · 기안일 3일 경과</div>
+                    </div>
+                    <span class="db-row__side sb-badge sb-badge--gray">확인필요</span>
+                </div>
+                <div class="db-row">
+                    <span class="db-row__icon tone-violet"><i class="bi bi-cash-coin"></i></span>
+                    <div class="db-row__main">
+                        <div class="db-row__title"><span class="txt">7월 급여 대장 마감</span></div>
+                        <div class="db-row__meta">D-6 · 지급일 07/25</div>
+                    </div>
+                    <span class="db-row__side sb-badge sb-badge--blue">예정</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 최근 입사자 -->
+        <div class="sb-card db-card db-card--newjoin">
+            <div class="sb-card__head">
+                <h2>최근 입사자</h2>
+                <div class="right"><a href="#" class="btn btn-sb-soft btn-sm">채용관리</a></div>
+            </div>
+            <div class="sb-card__body sb-card__body--flush">
+                <div class="db-row">
+                    <span class="sb-avatar">한</span>
+                    <div class="db-row__main">
+                        <div class="db-row__title"><span class="txt">한지민</span></div>
+                        <div class="db-row__meta">개발팀 · 사원 · 2026-07-01 입사</div>
+                    </div>
+                </div>
+                <div class="db-row">
+                    <span class="sb-avatar">오</span>
+                    <div class="db-row__main">
+                        <div class="db-row__title"><span class="txt">오태양</span></div>
+                        <div class="db-row__meta">영업팀 · 사원 · 2026-07-01 입사</div>
+                    </div>
+                </div>
+                <div class="db-row">
+                    <span class="sb-avatar">문</span>
+                    <div class="db-row__main">
+                        <div class="db-row__title"><span class="txt">문서영</span></div>
+                        <div class="db-row__meta">마케팅팀 · 주임 · 2026-06-16 입사</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 전사 프로젝트 진행률 -->
+        <div class="sb-card db-card db-card--projall">
+            <div class="sb-card__head">
+                <h2>전사 프로젝트 진행률</h2>
+                <div class="right"><a href="#" class="btn btn-sb-soft btn-sm">전체보기</a></div>
+            </div>
+            <div class="sb-card__body">
+                <div class="db-project">
+                    <div class="db-project__head">
+                        <div class="db-project__name"><span class="txt">2026 ERP 고도화 프로젝트</span></div>
+                        <span class="db-project__dday">D-82</span>
+                    </div>
+                    <div class="db-project__progress-wrap">
+                        <div class="sb-progress"><span style="width:65%;"></span></div>
+                        <span class="db-project__pct">65%</span>
+                    </div>
+                </div>
+                <div class="sb-divider"></div>
+                <div class="db-project">
+                    <div class="db-project__head">
+                        <div class="db-project__name"><span class="txt">AI 인사평가 리포트 연동</span></div>
+                        <span class="db-project__dday">D-36</span>
+                    </div>
+                    <div class="db-project__progress-wrap">
+                        <div class="sb-progress"><span style="width:40%;"></span></div>
+                        <span class="db-project__pct">40%</span>
+                    </div>
+                </div>
+                <div class="sb-divider"></div>
+                <div class="db-project">
+                    <div class="db-project__head">
+                        <div class="db-project__name"><span class="txt">모바일 앱 리뉴얼</span></div>
+                        <span class="db-project__dday">D-22</span>
+                    </div>
+                    <div class="db-project__progress-wrap">
+                        <div class="sb-progress"><span style="width:0%;background:var(--sb-ink-faint);"></span></div>
+                        <span class="db-project__pct">0%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+</body>
+</html>

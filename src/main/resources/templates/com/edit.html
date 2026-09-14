@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{fragments/layout}">
+<head>
+    <title th:text="${com.comName} + ' · 수정'">회사 수정</title>
+</head>
+<body>
+<main layout:fragment="content" class="sb-content">
+<!-- 페이지 헤더 -->
+<div class="sb-page-head">
+    <div class="sb-page-head__txt">
+        <div class="sb-breadcrumb">
+            <a th:href="@{/}">홈</a>
+            <i class="bi bi-chevron-right"></i>
+            <a th:href="@{/com/list}">회사 관리</a>
+            <i class="bi bi-chevron-right"></i>
+            수정
+            <span class="admin-tag ms-2">관리자</span>
+        </div>
+        <!-- [변경점] ${com.comName} 헤더 텍스트 -> th:text (edit 화면은 항상 기존 com 이 있어야 하므로 안전 탐색 없이 그대로) -->
+        <h1 th:text="${com.comName} + ' · 수정'">회사명 · 수정</h1>
+        <p>회사 정보를 수정합니다.</p>
+    </div>
+    <div class="sb-page-head__actions">
+        <button type="button" class="btn btn-ghost btn-sm" id="delBtn"
+                style="color:var(--sb-red);border-color:#f3c9c9">
+            <i class="bi bi-trash3"></i> 삭제
+        </button>
+        <a th:href="@{/com/list}" class="btn btn-ghost btn-sm">
+            <i class="bi bi-arrow-left"></i> 목록으로
+        </a>
+    </div>
+</div>
+
+<!-- 서버 측 오류 메시지 출력 -->
+<div th:if="${not #strings.isEmpty(errorMsg)}" class="alert alert-danger alert-dismissible fade show" role="alert">
+    <i class="bi bi-exclamation-triangle-fill me-1"></i>
+    <span th:text="${errorMsg}"></span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+
+<!-- 탭 헤더 -->
+<div class="sb-tabs">
+    <div class="sb-tab active" data-tab="info">
+        <i class="bi bi-building"></i> 기본정보
+    </div>
+</div>
+
+<!-- Tab 1: 기본정보-->
+<div class="sb-tab-panel active" id="tab-info">
+    <form method="post"
+          th:action="@{/com/edit}"
+          enctype="multipart/form-data"
+          id="editForm"
+          onsubmit="return validateForm()">
+
+        <!-- PK: com_id (수정 대상 식별) -->
+        <input type="hidden" name="comId" th:value="${com.comId}"/>
+
+        <!-- ① 업종 분류 -->
+        <div class="sb-card mb-3">
+            <div class="sb-card__head">
+                <h2><i class="bi bi-tag me-2 text-soft"></i>업종 분류</h2>
+            </div>
+            <div class="sb-card__body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="sb-form-label">
+                            업종 <span style="color:var(--sb-red)">*</span>
+                        </label>
+                        <select class="form-select" id="industryGrpCode" name="industryGrpCode"
+                                onchange="syncIndustryCode()" required>
+                            <option value="">-- 업종 선택 --</option>
+                            <option value="C" th:selected="${com.industryGrpCode == 'C'}">제조업</option>
+                            <option value="F" th:selected="${com.industryGrpCode == 'F'}">건설업</option>
+                            <option value="G" th:selected="${com.industryGrpCode == 'G'}">도매 및 소매업</option>
+                            <option value="H" th:selected="${com.industryGrpCode == 'H'}">운수 및 창고업</option>
+                            <option value="I" th:selected="${com.industryGrpCode == 'I'}">숙박 및 음식점업</option>
+                            <option value="J" th:selected="${com.industryGrpCode == 'J'}">정보통신업</option>
+                            <option value="K" th:selected="${com.industryGrpCode == 'K'}">금융 및 보험업</option>
+                            <option value="M" th:selected="${com.industryGrpCode == 'M'}">전문, 과학 및 기술 서비스업</option>
+                            <option value="N" th:selected="${com.industryGrpCode == 'N'}">사업시설관리, 사업지원 및 임대 서비스업</option>
+                            <option value="S" th:selected="${com.industryGrpCode == 'S'}">협회 및 단체, 수리 및 기타 개인 서비스업</option>
+                        </select>
+                        <div class="text-faint mt-1" style="font-size:12px">
+                            대분류를 바꾸면 세부업종 목록이 갱신됩니다.
+                        </div>
+                    </div>
+
+                    <!-- industryCode : industryGrpCode에 종속되는 세부업종 select -->
+                    <div class="col-md-6">
+                        <label class="sb-form-label">
+                            세부 업종 <span style="color:var(--sb-red)">*</span>
+                        </label>
+                        <select class="form-select" id="industryCode" name="industryCode" disabled required>
+                            <option value="">-- 업종을 먼저 선택하세요 --</option>
+                        </select>
+                        <div class="invalid-feedback" id="eIndustryCode">세부 업종을 선택하세요.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ② 기본 정보 -->
+        <div class="sb-card mb-3">
+            <div class="sb-card__head">
+                <h2><i class="bi bi-building me-2 text-soft"></i>기본 정보</h2>
+                <div class="right">
+                    <span class="sb-badge sb-badge--gray">COM-<span th:text="${#numbers.formatInteger(com.comId, 3)}">001</span></span>
+                </div>
+            </div>
+            <div class="sb-card__body">
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <label class="sb-form-label">
+                            회사명 <span style="color:var(--sb-red)">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="comName" name="comName"
+                               placeholder="회사명을 입력하세요" maxlength="100"
+                               th:value="${com.comName}" required>
+                        <div class="invalid-feedback">회사명은 필수입니다. (최대 100자)</div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="sb-form-label">
+                            대표자 <span style="color:var(--sb-red)">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="comCeo" name="comCeo"
+                               placeholder="대표자명" maxlength="100"
+                               th:value="${com.comCeo}" required>
+                        <div class="invalid-feedback">대표자명은 필수입니다.</div>
+                    </div>
+
+                    <!-- biz_no: 수정 불가(readonly), hidden으로 값 전송 -->
+                    <div class="col-md-6">
+                        <label class="sb-form-label">사업자번호</label>
+                        <input type="text" class="form-control" id="bizNo"
+                               th:value="${com.bizNo}" readonly
+                               style="background:#fafbfc;color:var(--sb-ink-soft)">
+                        <input type="hidden" name="bizNo" th:value="${com.bizNo}"/>
+                        <div class="text-faint mt-1" style="font-size:12px">
+                            <i class="bi bi-lock-fill me-1"></i>사업자번호는 수정할 수 없습니다.
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="sb-form-label">대표 전화</label>
+                        <input type="tel" class="form-control" id="comTel" name="comTel"
+                               placeholder="02-0000-0000" maxlength="100"
+                               th:value="${com.comTel}">
+                        <div class="text-faint mt-1" style="font-size:12px">선택 입력</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ③ 회사 로고 -->
+        <div class="sb-card mb-3">
+            <div class="sb-card__head">
+                <h2><i class="bi bi-image me-2 text-soft"></i>회사 로고</h2>
+                <span class="sub">PNG · JPG · SVG · WEBP, 최대 2MB</span>
+            </div>
+            <div class="sb-card__body">
+                <div class="logo-zone">
+                    <div class="logo-preview" id="logoPreviewWrap">
+                        <img th:if="${not #strings.isEmpty(com.comLogo)}" id="logoPreview"
+                             th:src="@{${com.comLogo}}" alt="현재 로고"
+                             style="width:100%;height:100%;object-fit:cover">
+                        <i th:unless="${not #strings.isEmpty(com.comLogo)}" class="bi bi-building"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <input type="file" class="form-control" id="logoFile" name="logoFile"
+                               accept="image/png, image/jpeg, image/svg+xml, image/webp"
+                               onchange="previewLogo(this)">
+                        <div class="text-faint mt-1" style="font-size:12px">
+                            PNG · JPG · SVG · WEBP, 최대 2MB.<br>
+                            파일을 선택하지 않으면 기존 로고가 유지됩니다.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2 justify-content-end mt-2">
+            <button type="button" class="btn btn-ghost" onclick="resetForm()">초기화</button>
+            <a th:href="@{/com/list}" class="btn btn-ghost">목록</a>
+            <button type="submit" class="btn btn-sb">
+                <i class="bi bi-floppy me-1"></i>저장
+            </button>
+        </div>
+    </form>
+</div><!-- /tab-info -->
+
+<!-- 업종 대분류/세부업종 공용 매핑 (form.html, edit.html, com-ocr.js 공용) -->
+<script th:src="@{/js/industry-code.js}"></script>
+
+<script th:inline="javascript">
+(function () {
+    "use strict";
+
+    /* ── 탭 전환 ── */
+    document.querySelectorAll(".sb-tab").forEach(function (tab) {
+        tab.addEventListener("click", function () {
+            document.querySelectorAll(".sb-tab").forEach(function (t) { t.classList.remove("active"); });
+            document.querySelectorAll(".sb-tab-panel").forEach(function (p) { p.classList.remove("active"); });
+            tab.classList.add("active");
+            document.getElementById("tab-" + tab.dataset.tab).classList.add("active");
+        });
+    });
+
+    /* ── 삭제 (관리자 비밀번호 확인 모달) ──
+       ⚠ TODO: 임시 클라이언트 검증(admin123)입니다. 서버 인증 연동 전까지만 사용하세요.
+    */
+    document.getElementById("delBtn").addEventListener("click", function () {
+        const m = SB.modal({
+            title: '<span style="color:var(--sb-red)"><i class="bi bi-shield-exclamation me-1"></i>회사 삭제</span>',
+            body:
+                '<div class="del-modal-icon"><i class="bi bi-building-x"></i></div>'
+                + '<div class="del-company-name">' + /*[[${com.comName}]]*/ '' + '</div>'
+                + '<div class="del-warning">'
+                +   '삭제 시 연결된 부서·사원 데이터에 영향을 줄 수 있습니다.<br>'
+                +   '계속하려면 <b>관리자 비밀번호</b>를 입력하세요.'
+                + '</div>'
+                + '<div class="mb-2">'
+                +   '<label class="sb-form-label">관리자 비밀번호 <span style="color:var(--sb-red)">*</span></label>'
+                +   '<input type="password" class="form-control" id="delPw" placeholder="비밀번호 입력" autocomplete="new-password">'
+                +   '<div id="delPwErr" style="display:none;color:var(--sb-red);font-size:12.5px;margin-top:6px">'
+                +     '<i class="bi bi-exclamation-circle-fill me-1"></i>비밀번호가 올바르지 않습니다.'
+                +   '</div>'
+                + '</div>',
+            footer:
+                '<button class="btn btn-ghost" data-bs-dismiss="modal">취소</button>'
+                + '<button class="btn btn-sb" id="delYes" style="background:var(--sb-red);border-color:var(--sb-red)">'
+                +   '<i class="bi bi-trash3"></i> 삭제 확인'
+                + '</button>',
+        });
+
+        const pwInput = m.el.querySelector("#delPw");
+        const pwErr   = m.el.querySelector("#delPwErr");
+        setTimeout(function () { pwInput.focus(); }, 300);
+
+        pwInput.addEventListener("keydown", function (e) {
+            if (e.key === "Enter") { e.preventDefault(); m.el.querySelector("#delYes").click(); }
+        });
+        pwInput.addEventListener("input", function () {
+            pwErr.style.display = "none";
+            pwInput.classList.remove("is-invalid");
+        });
+
+        m.el.querySelector("#delYes").addEventListener("click", function () {
+            if (pwInput.value !== "admin123") {
+                pwErr.style.display = "";
+                pwInput.classList.add("is-invalid");
+                pwInput.focus();
+                return;
+            }
+            /* [변경점] CTX + "/com/delete?comId=${com.comId}" -> @{/com/delete(comId=...)} 인라인 */
+            location.href = /*[[@{/com/delete(comId=${com.comId})}]]*/ '';
+        });
+    });
+
+    /* 업종 대분류(industryGrpCode) → 세부업종(industryCode) select 렌더링은
+       공용 모듈(js/industry-code.js)의 IndustryCode.renderOptions()를 사용한다. */
+
+    /* 대분류 select onchange 핸들러: 대분류가 바뀌면 세부업종은 새로 선택하도록 초기화 */
+    function syncIndustryCode() {
+        IndustryCode.renderOptions('industryGrpCode', 'industryCode', '');
+    }
+    window.syncIndustryCode = syncIndustryCode;
+
+    /* 최초 로드 시 저장된 세부업종 값을 그대로 선택 상태로 복원 */
+    IndustryCode.renderOptions('industryGrpCode', 'industryCode', /*[[${com.industryCode}]]*/ '');
+
+    function previewLogo(input) {
+        const file = input.files && input.files[0];
+        if (!file) return;
+        if (file.size > 2 * 1024 * 1024) {
+            alert('파일 크기는 2MB 이하여야 합니다.');
+            input.value = '';
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            document.getElementById('logoPreviewWrap').innerHTML =
+                '<img src="' + e.target.result + '" alt="새 로고 미리보기"' +
+                ' style="width:100%;height:100%;object-fit:cover">';
+        };
+        reader.readAsDataURL(file);
+    }
+    window.previewLogo = previewLogo;
+
+    function resetForm() {
+        // 업종: DB에 저장된 값으로 복원
+        document.getElementById('industryGrpCode').value = /*[[${com.industryGrpCode ?: ''}]]*/ '';
+        IndustryCode.renderOptions('industryGrpCode', 'industryCode', /*[[${com.industryCode ?: ''}]]*/ '');
+
+        // 텍스트 필드 복원
+        document.getElementById('comName').value = /*[[${com.comName ?: ''}]]*/ '';
+        document.getElementById('comCeo').value  = /*[[${com.comCeo ?: ''}]]*/ '';
+        document.getElementById('comTel').value  = /*[[${com.comTel ?: ''}]]*/ '';
+
+        // 로고 미리보기 원복
+        const wrap = document.getElementById('logoPreviewWrap');
+        const existingLogo = /*[[${com.comLogo != null} ? @{${com.comLogo}} : '']]*/ '';
+        wrap.innerHTML = existingLogo
+            ? '<img src="' + existingLogo + '" alt="현재 로고" style="width:100%;height:100%;object-fit:cover">'
+            : '<i class="bi bi-building"></i>';
+
+        // 파일 input 초기화
+        document.getElementById('comLogo') && (document.getElementById('comLogo').value = '');
+        document.getElementById('logoFile') && (document.getElementById('logoFile').value = '');
+
+        document.querySelectorAll('.is-valid, .is-invalid')
+                .forEach(el => el.classList.remove('is-valid', 'is-invalid'));
+    }
+    window.resetForm = resetForm;
+
+    function validateForm() {
+        let valid = true;
+
+        const grpSel = document.getElementById('industryGrpCode');
+        if (!grpSel.value) {
+            setInvalid(grpSel, '업종을 선택하세요.');
+            valid = false;
+        } else {
+            setValid(grpSel);
+        }
+
+        const codeSel = document.getElementById('industryCode');
+        if (!codeSel.value) {
+            setInvalid(codeSel, '세부 업종을 선택하세요.');
+            valid = false;
+        } else {
+            setValid(codeSel);
+        }
+
+        const comNameEl = document.getElementById('comName');
+        if (!comNameEl.value.trim()) {
+            setInvalid(comNameEl, '회사명은 필수입니다. (최대 100자)');
+            valid = false;
+        } else {
+            setValid(comNameEl);
+        }
+
+        const comCeoEl = document.getElementById('comCeo');
+        if (!comCeoEl.value.trim()) {
+            setInvalid(comCeoEl, '대표자명은 필수입니다.');
+            valid = false;
+        } else {
+            setValid(comCeoEl);
+        }
+
+        return valid;
+    }
+    window.validateForm = validateForm;
+
+    function setInvalid(el, message) {
+        el.classList.remove('is-valid');
+        el.classList.add('is-invalid');
+        const fb = el.parentElement.querySelector('.invalid-feedback')
+                 || el.nextElementSibling;
+        if (fb && fb.classList.contains('invalid-feedback')) fb.textContent = message;
+    }
+
+    function setValid(el) {
+        el.classList.remove('is-invalid');
+        el.classList.add('is-valid');
+    }
+})();
+</script>
+</main>
+</body>
+</html>

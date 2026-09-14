@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{fragments/layout}">
+<head>
+	<title>이관 대기 부서 목록</title>
+</head>
+<body data-page="deptpending">
+<main layout:fragment="content" class="sb-content">
+<div class="sb-card" style="margin-bottom:16px">
+    <div class="sb-toolbar">
+        <span class="fw-semibold"><i class="bi bi-signpost-split"></i> 이관 대기 부서</span>
+        <div class="grow"></div>
+        <form method="get" th:action="@{/dept/transfer/pending}" class="d-flex gap-2">
+            <input type="text" name="keyword" th:value="${keyword}"
+                   class="form-control form-control-sm" placeholder="부서명 또는 부서코드 검색"
+                   style="min-width:200px">
+            <button type="submit" class="btn btn-ghost btn-sm px-3" style="white-space:nowrap; flex-shrink:0">
+                <i class="bi bi-search"></i> 검색
+            </button>
+        </form>
+    </div>
+
+    <div class="px-3 pt-3" style="font-size:12px; color:var(--sb-ink-faint)">
+        <i class="bi bi-info-circle"></i>
+        부서 삭제(해체)를 진행하다가 사원 이관을 마치지 못하고 나가신 경우, 여기서 다시 찾아 이어서 진행할 수 있습니다.
+    </div>
+
+    <div class="sb-card__body--flush" style="margin-top:8px">
+        <table class="sb-table" th:if="${not #lists.isEmpty(pendingDepts)}">
+            <thead>
+                <tr>
+                    <th>부서명</th>
+                    <th style="width:140px">부서코드</th>
+                    <th style="width:120px">소속 사원 수</th>
+                    <th style="width:180px">이관 대기 시작</th>
+                    <th style="width:160px"></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="d : ${pendingDepts}">
+                    <td th:text="${d.deptName}"></td>
+                    <td><span class="dept-code-chip" th:text="${d.deptCode}"></span></td>
+                    <td>
+                        <span class="sb-badge sb-badge--amber"
+                              th:text="${d.empCount} + '명'"></span>
+                    </td>
+                    <td th:text="${d.updatedAt}"></td>
+                    <td>
+                        <a class="btn btn-sb btn-sm" th:href="@{/dept/transfer/list(deptId=${d.deptId})}">
+                            <i class="bi bi-arrow-right-circle"></i> 이관 이어하기
+                        </a>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="sb-empty" th:if="${#lists.isEmpty(pendingDepts)}">
+            <i class="bi bi-check2-circle"></i>
+            <p th:if="${keyword != null and keyword != ''}">"<span th:text="${keyword}"></span>"에 해당하는 이관 대기 부서가 없습니다.</p>
+            <p th:unless="${keyword != null and keyword != ''}">이관 대기중인 부서가 없습니다.</p>
+        </div>
+    </div>
+</div>
+</main>
+</body>
+</html>

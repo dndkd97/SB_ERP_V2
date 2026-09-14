@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{fragments/layout.html}">
+<head>
+	<title>전자결재 문서함</title>
+</head>
+<body data-page="apprlistdoc">
+
+<main layout:fragment="content">
+
+<!-- 토스트 / 안내 문구 -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3"
+	 style="z-index: 1080;" id="toastContainer"></div>
+<div id="flashToastData"
+	 th:if="${toastMsg}"
+	 th:attr="data-type=${toastType} ?: 'info', data-msg=${toastMsg}"
+	 style="display: none;"></div>
+<script th:src="@{/js/appr-toast.js}"></script>
+	
+<!-- 페이지 헤더 -->
+<div class="sb-page-head">
+	<div class="sb-page-head__txt">
+		<div class="sb-breadcrumb">
+			<a th:href="@{/appr/list_doc}">전자결재</a>
+			<i class="bi bi-chevron-right"></i>
+			<span>결재 문서함</span>
+		</div>
+		<h1>결재 문서 조회</h1>
+		<p>내가 기안/결재한 문서 및 결재 대기 중인 문서를 확인합니다.</p>
+	</div>
+	<div class="sb-page-head__actions">
+		<button type="button" class="btn btn-sb" th:onclick="|location.href='@{/appr/write_doc}'|">
+			<i class="bi bi-pencil-square"></i> 새 결재 기안
+		</button>
+	</div>
+</div>
+
+<!-- 문서 상태별 대시보드 -->
+<div class="row g-3 mb-4">
+
+	<div class="col-12 col-md-3">
+		<div class="sb-card h-100 p-3 d-flex align-item-center">
+			<div class="rounded-3 p-3 bg-primary-subtle text-primary me-3 d-flex align-items-center justify-content-center"
+				 style="width: 54px; height: 54px;">
+			<i class="bi bi-folder2-open fs-3"></i>
+			</div>
+			<div>
+				<div class="text-muted small fw-medium mb-1">전체 문서</div>
+				<div class="fs-4 fw-bold text-dark">
+					<span class="tnum"
+						  th:text="${docCnts != null ? docCnts.TOTALCNT : 0}">0</span>
+					<span class="fs-6 fw-normal text-secondary">건</span>
+				</div>
+			</div>
+		</div>
+	</div>
+	
+	<div class="col-12 col-md-3">
+		<div class="sb-card h-100 p-3 d-flex align-item center">
+			<div class="rounded-3 p-3 bg-warning-subtle text-warning me-3 d-flex align-items-center justify-content-center"
+				 style="width: 54px; height: 54px;">
+			<i class="bi bi-hourglass-split fs-3"></i>
+			</div>
+			<div>
+				<div class="text-muted small fw-medium mb-1">진행 중</div>
+				<div class="fs-4 fw-bold text-dark">
+					<span class="tnum"
+						  th:text="${docCnts != null ? docCnts.INGCNT : 0}">0</span>
+					<span class="fs-6 fw-normal text-secondary">건</span>
+				</div>
+			</div>
+		</div>
+	</div>
+	
+	<div class="col-12 col-md-3">
+		<div class="sb-card h-100 p-3 d-flex align-item center">
+			<div class="rounded-3 p-3 bg-success-subtle text-success me-3 d-flex align-items-center justify-content-center"
+				 style="width: 54px; height: 54px;">
+			<i class="bi bi-check-lg fs-3"></i>
+			</div>
+			<div>
+				<div class="text-muted small fw-medium mb-1">최종 승인</div>
+				<div class="fs-4 fw-bold text-dark">
+					<span class="tnum"
+					      th:text="${docCnts != null ? docCnts.APPCNT : 0}">0</span>
+					<span class="fs-6 fw-normal text-secondary">건</span>
+				</div>
+			</div>
+		</div>
+	</div>
+	
+	<div class="col-12 col-md-3">
+		<div class="sb-card h-100 p-3 d-flex align-item center">
+			<div class="rounded-3 p-3 bg-danger-subtle text-danger me-3 d-flex align-items-center justify-content-center"
+				 style="width: 54px; height: 54px;">
+			<i class="bi bi-x-lg fs-3"></i>
+			</div>
+			<div>
+				<div class="text-muted small fw-medium mb-1">반려</div>
+				<div class="fs-4 fw-bold text-dark">
+					<span class="tnum"
+						  th:text="${docCnts != null ? docCnts.REJCNT : 0}">0</span>
+					<span class="fs-6 fw-normal text-secondary">건</span>
+				</div>
+			</div>
+		</div>
+	</div>
+	
+</div>
+
+<!-- 상단 검색바 -->
+<form class="sb-card mb-4" method="get" th:action="@{/appr/list_doc}">
+	<input type="hidden" name="tab" th:value="${activeTab}"/>
+	<div class="sb-toolbar">
+		<div class="sb-field sb-field--search">
+			<i class="bi bi-search"></i>
+			<input type="text" name="keyword" th:value="${keyword}"
+				   placeholder="문서 번호, 제목, 기안자 검색"/>
+		</div>
+		<div class="sb-header__spacer"></div>
+		<div class="sb-field">
+			<select class="form-select" name="status" onchange="submit()">
+				<option value="">전체 상태</option>
+				<option value="ING" th:selected="${status == 'ING'}">진행</option>
+				<option value="APP" th:selected="${status == 'APP'}">승인</option>
+				<option value="REJ" th:selected="${status == 'REJ'}">반려</option>
+			</select>
+		</div>
+		<button type="submit" class="btn btn-sb">검색</button>
+	</div>
+</form>
+
+<!-- 탭 메뉴 -->
+<div class="sb-tabs">
+	<a th:href="@{/appr/list_doc(tab='history', keyword=${keyword}, status=${status})}"
+	   class="sb-tab" th:classappend="${activeTab == 'history'} ? 'active'">
+	   <i class="bi bi-archive-fill"></i> 모든 문서
+	</a>
+	<a th:href="@{/appr/list_doc(tab='todo', keyword=${keyword}, status=${status})}"
+	   class="sb-tab" th:classappend="${activeTab == 'todo'} ? 'active'">
+	   <i class="bi bi-file-earmark-check-fill"></i> 결재해야 할 모든 문서
+	   <span th:if="${docCnts != null ? docCnts.MYCNT > 0 : false}"
+	   		 class="sb-nav__badge"
+	   		 th:text="${docCnts.MYCNT}">0</span>
+	</a>
+	<!-- 관리자 전용 -->
+	<a th:if="${isRoot}"
+	   th:href="@{/appr/list_doc(tab='request')}"
+	   class="sb-tab" th:classappend="${activeTab == 'request'} ? 'active'">
+	   <i class="bi bi-person-gear"></i> 결재선 변경 요청
+	   <span th:if="${pendingCnt != null and pendingCnt > 0}"
+	   		 class="sb-nav__badge" th:text="${pendingCnt}">0</span>
+	</a>
+</div>
+
+
+<!-- 모든 문서 -->
+<div id="tab-my-history" class="sb-tab-panel"
+	 th:classappend="${activeTab == 'history' || activeTab == null} ? 'active'">
+	<div class="sb-card">
+		<div class="sb-card__body sb-card__body--flush">
+			<table class="sb-table align-middle">
+				<thead>
+					<tr>
+						<th style="width: 12%">문서번호</th>
+						<th>문서 제목</th>
+						<th style="width: 12%">기안자</th>
+						<th style="width: 15%">기안 일시</th>
+						<th style="width: 10%">결재 상태</th>
+						<th style="width: 12%; text-align: center">상세 보기</th>
+					</tr>
+				</thead>
+				<tbody> 
+					<tr th:each="doc : ${hisDocs}">
+						<td class="tnum fw-semibold" th:text="${doc.docId}">1</td>
+						<td>
+							<span th:if="${doc.isImportant}"
+								  class="badge bg-danger me-1"
+								  style="font-size: 11px;">중요</span>
+							<span class="sb-table__name"
+								  th:text="${doc.docTitle}">결재 문서 제목</span>
+						</td>
+						<td>
+							<span th:text="${doc.empName}">이름</span>
+						</td>
+						<td class="tnum text-soft" th:text="${doc.createdAt}">0000-00-00</td>
+						<td>
+							<span th:if="${doc.docStatus == 'APP'}"
+								  class="sb-badge sb-badge--green">
+								  <span class="pip"></span>최종 승인</span>
+							<span th:if="${doc.docStatus == 'REJ'}"
+								  class="sb-badge sb-badge--red">
+								  <span class="pip"></span>반려</span>
+							<span th:if="${doc.docStatus == 'ING' and doc.linStatus == 'WAI'}"
+								  class="sb-badge sb-badge--amber">
+								  <span class="pip"></span>결재 대기</span>
+							<span th:if="${doc.docStatus == 'ING' and doc.linStatus == 'NOT'}"
+								  class="sb-badge sb-badge--gray">
+								  <span class="pip"></span>순서 대기</span>
+							<span th:if="${doc.docStatus == 'ING' and doc.linStatus == 'APP'}"
+								  class="sb-badge sb-badge--blue">
+								  <span class="pip"></span>결재 완료</span>
+							<span th:if="${doc.docStatus == 'ING' and doc.linStatus == null}"
+								  class="sb-badge sb-badge--blue">
+								  <span class="pip"></span>진행 중</span>
+						</td>
+						<td style="text-align: center;">
+							<button type="button" class="btn btn-ghost btn-sm"
+									th:onclick="|location.href='@{/appr/detail_doc(docId=${doc.docId})}'|">
+								<i class="bi bi-search"></i> 상세보기
+							</button>
+						</td>
+					</tr>
+					
+					<!-- 데이터 없을때 -->
+					<tr th:if="${#lists.isEmpty(hisDocs)}">
+						<td colspan="6">
+							<div class="sb-empty">
+								<i class="bi bi-folder-x"></i>
+								<p>조회된 결재 문서가 없습니다.</p>
+							</div>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+	</div>
+</div>
+
+<!-- 내가 해야되는 문서 -->
+<div id="tab-my-todo" class="sb-tab-panel"
+	 th:classappend="${activeTab == 'todo'} ? 'active'">
+	<div class="sb-card">
+		<div class="sb-card__body sb-card__body--flush">
+			<table class="sb-table align-middle">
+				<thead>
+					<tr>
+						<th style="width: 12%">문서 번호</th>
+						<th>문서 제목</th>
+						<th style="width: 12%">기안자</th>
+						<th style="width: 15%">기안 일시</th>
+						<th style="width: 10%">결재 단계</th>
+						<th style="width: 12%; text-align: center;">결재 처리</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr th:each=" doc : ${todoDocs}">
+						<td class="tnum fw-semibold" th:text="${doc.docId}">0</td>
+						<td>
+							<span th:if="${doc.isImportant}" class="badge bg-danger me-1"
+								  style="font-size: 11px;">중요</span>
+							<span class="sb-table__name" th:text="${doc.docTitle}">결재 문서 제목</span>
+						</td>
+						<td>
+							<span th:text="${doc.empName}">이름</span>
+						</td>
+						<td class="tnum text-soft" th:text="${doc.createdAt}">날짜</td>
+						<td>
+							<span class="sb-badge sb-badge--amber">
+								<span class="pip"></span>결재 대기
+							</span>
+						</td>
+						<td style="text-align: center;">
+							<button type="button" class="btn btn-ghost btn-sm"
+									th:onclick="|location.href='@{/appr/detail_doc(docId=${doc.docId})}'|">
+								<i class="bi bi-search"></i> 상세보기
+							</button>
+						</td>
+					</tr>
+					<!-- 데이터 없을떄 -->
+					<tr th:if="${#lists.isEmpty(todoDocs)}">
+						<td colspan="6">
+							<div class="sb-empty">
+								<i class="bi bi-check-all text-success" style="opacity: 1;"></i>
+								<p class="text-success fw-semibold">대기 중인 결재 문서가 없습니다</p>
+							</div>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+	</div>
+</div>
+
+<!-- 결재선 변경 요청 탭 -->
+<div id="tab-request" class="sb-tab-panel" th:classappend="${activeTab == 'request'} ? 'active'"
+	 th:if="${activeTab == 'request'}">
+	<div class="sb-card">
+		<div class="sb-card__body sb-card__body--flush">
+			<table class="sb-table align-middle">
+				<thead>
+					<tr>
+						<th>문서</th>
+						<th>기존 결재자</th>
+						<th>요청자</th>
+						<th>사유</th>
+						<th>유청일</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr th:if="${pendingRequest == null or pendingRequests.isEmpty()}">
+						<td colspan="6" class="text-center text-muted py-4">대기중인 요청이 없습니다.</td>
+					</tr>
+					<tr th:each="req : ${pendingRequests}">
+						<td th:text="${req.docTitle}"></td>
+						<td th:text="${req.oriEmpName}"></td>
+						<td th:text="${req.reqEmpName}"></td>
+						<td th:text="${req.reqReason}"></td>
+						<td class="tnum text-soft" th:text="${req.createdAt}"></td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+	</div>
+</div>
+
+<div class="d-flex justify-content-center mt-4">
+       <ul class="pagination" id="pagingUl">
+           <li class="page-item" th:if="${paging.start > 1}">
+               <a class="page-link"
+                  th:href="@{/appr/list_doc(tab=${activeTab}, keyword=${keyword}, status=${status}, page=${paging.start -1})}">이전</a>
+           </li>
+           <th:block th:each="i : ${#numbers.sequence(paging.start, paging.end)}">
+            <li class="page-item" th:classappend="${paging.current == i} ? 'active' : ''">
+                <a class="page-link"
+                   th:href="@{/appr/list_doc(tab=${activeTab}, keyword=${keyword}, status=${status}, page=${i})}"
+                   th:text="${i}"></a>
+            </li>
+		</th:block>
+           <li class="page-item" th:if="${paging.end < paging.pagetotal}">
+               <a class="page-link" th:href="@{/appr/list_doc(tab=${activeTab}, keyword=${keyword}, status=${status}, page=${paging.end +1})}">다음</a>
+           </li>
+       </ul>
+   </div>
+
+</main>
+</body>
+</html>

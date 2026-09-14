@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{fragments/layout}">
+<head>
+    <title>평가 작성</title>
+</head>
+<body data-page="evallist">
+<section class="eval_list sb-content" layout:fragment="content">
+
+    <!-- 페이지 헤더 -->
+    <div class="sb-page-head">
+        <div class="sb-page-head__txt">
+            <div class="sb-breadcrumb">
+                <a th:href="@{/}">홈</a>
+                <i class="bi bi-chevron-right"></i>
+                인사평가
+                <i class="bi bi-chevron-right"></i>
+                평가 작성
+            </div>
+            <h1>평가 작성</h1>
+            <p>내가 평가해야 할 부서원 목록을 확인하고 평가를 작성합니다.</p>
+        </div>
+        <div class="sb-page-head__actions">
+            <a th:if="${period != null}"
+               th:href="@{/eval/list}" class="btn btn-ghost btn-sm">
+                <i class="bi bi-arrow-repeat"></i>
+                회차 변경
+            </a>
+            <a sec:authorize="hasAnyRole('ROOT', 'ADMIN')"
+               th:href="@{/eval/period/list}" class="btn btn-ghost btn-sm">
+                <i class="bi bi-calendar-event"></i>
+                회차 관리
+            </a>
+        </div>
+    </div>
+
+    <!-- Flash 메시지 -->
+    <div th:if="${successMsg}" class="sb-alert sb-alert--success mb-3">
+        <i class="bi bi-check-circle me-2"></i>
+        <span th:text="${successMsg}">메시지</span>
+    </div>
+    <div th:if="${errorMsg}" class="sb-alert sb-alert--danger mb-3">
+        <i class="bi bi-exclamation-circle me-2"></i>
+        <span th:text="${errorMsg}">메시지</span>
+    </div>
+
+    <!-- 회차 미선택 상태 (OPEN 회차 카드 목록) -->
+    <div th:if="${period == null}">
+
+        <!-- 안내 -->
+        <div class="sb-card mb-3">
+            <div class="sb-card__body">
+                <div class="d-flex align-items-center gap-3">
+                    <i class="bi bi-info-circle" style="font-size:24px;color:var(--sb-accent)"></i>
+                    <div>
+                        <div style="font-weight:650">평가할 회차를 선택하세요</div>
+                        <div class="text-faint" style="font-size:13px">
+                            진행 중(OPEN)인 회차만 표시됩니다. 회차를 선택하면 평가할 부서원 목록을 확인할 수 있습니다.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- OPEN 회차 카드 목록 -->
+        <div class="row g-3">
+
+            <div th:if="${#lists.isEmpty(openPeriods)}" class="col-12">
+                <div class="sb-card">
+                    <div class="sb-empty" style="padding:60px 20px">
+                        <i class="bi bi-calendar-x"></i>
+                        <p>진행 중인 회차가 없습니다.<br>
+                           <span sec:authorize="hasAnyRole('ROOT', 'ADMIN')">회차 관리에서 회차를 등록하고 열어주세요.</span>
+                           <span sec:authorize="!hasAnyRole('ROOT', 'ADMIN')">관리자가 회차를 열어야 평가를 시작할 수 있습니다.</span>
+                        </p>
+                        <a sec:authorize="hasAnyRole('ROOT', 'ADMIN')"
+                           th:href="@{/eval/period/list}" class="btn btn-sb mt-2">
+                            <i class="bi bi-calendar-event me-1"></i>
+                            회차 관리로 이동
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div th:each="p : ${openPeriods}" class="col-12 col-md-6 col-lg-4">
+                <a th:href="@{/eval/list(periodId=${p.periodId})}"
+                   class="sb-card eval-period-card"
+                   style="text-decoration:none;color:inherit;display:block;cursor:pointer">
+                    <div class="sb-card__body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <span class="sb-badge sb-badge--green"><span class="pip"></span>진행 중</span>
+                            <i class="bi bi-chevron-right text-faint"></i>
+                        </div>
+
+                        <div style="font-size:17px;font-weight:650" th:text="${p.title}">2026년 상반기</div>
+                        <div class="text-faint mb-3" style="font-size:13px">
+                            <span th:text="${p.evalYear}">2026</span>년
+                            <span th:switch="${p.evalTerm}">
+                                <span th:case="'H1'">상반기</span>
+                                <span th:case="'H2'">하반기</span>
+                                <span th:case="'ANNUAL'">연간</span>
+                            </span>
+                        </div>
+
+                        <div class="pt-2" style="border-top:1px solid var(--sb-border)">
+                            <div class="text-faint" style="font-size:12px">평가 기간</div>
+                            <div class="tnum" style="font-size:13px">
+                                <span th:text="${p.startDate}">2026-01-01</span>
+                                ~
+                                <span th:text="${p.endDate}">2026-06-30</span>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 회차 선택 완료 상태 -->
+    <div th:if="${period != null}">
+
+        <div class="sb-card mb-3">
+            <div class="sb-card__body">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <div>
+                        <div class="text-faint" style="font-size:12px">현재 회차</div>
+                        <div style="font-size:17px;font-weight:650" th:text="${period.title}">2026년 상반기</div>
+                        <div class="text-faint" style="font-size:13px">
+                            <span th:text="${period.evalYear}">2026</span>년
+                            <span th:switch="${period.evalTerm}">
+                                <span th:case="'H1'">상반기</span>
+                                <span th:case="'H2'">하반기</span>
+                                <span th:case="'ANNUAL'">연간</span>
+                            </span>
+                            ·
+                            <span class="tnum" th:text="${period.startDate}">2026-01-01</span>
+                            ~
+                            <span class="tnum" th:text="${period.endDate}">2026-06-30</span>
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="text-end">
+                            <div class="text-faint" style="font-size:12px">진행률</div>
+                            <div style="font-size:17px;font-weight:650">
+                                <span th:text="${submittedCount}">0</span>
+                                <span class="text-faint">/</span>
+                                <span th:text="${totalCount}">0</span>
+                            </div>
+                        </div>
+                        <span th:switch="${period.periodStatus}">
+                            <span th:case="'READY'"    class="sb-badge sb-badge--gray"><span class="pip"></span>준비</span>
+                            <span th:case="'OPEN'"     class="sb-badge sb-badge--green"><span class="pip"></span>진행 중</span>
+                            <span th:case="'CLOSED'"   class="sb-badge sb-badge--amber"><span class="pip"></span>마감</span>
+                            <span th:case="'REPORTED'" class="sb-badge sb-badge--blue"><span class="pip"></span>AI 리포트</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <div th:if="${#lists.isEmpty(targets)}" class="col-12">
+                <div class="sb-card">
+                    <div class="sb-empty" style="padding:60px 20px">
+                        <i class="bi bi-people"></i>
+                        <p>평가할 대상이 없습니다.<br>부서장으로 지정된 부서가 없거나 부서원이 없는 상태입니다.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div th:each="target : ${targets}" class="col-12 col-md-4 col-lg-3">
+                <div class="sb-card eval-target-card">
+                    <div class="sb-card__body">
+                        <div class="d-flex align-items-center gap-3 mb-3">
+                            <div class="sb-avatar" style="width:48px;height:48px;font-size:20px"
+                                 th:text="${#strings.substring(target.targetEmpName, 0, 1)}">홍</div>
+                            <div>
+                                <div style="font-size:16px;font-weight:650"
+                                     th:text="${target.targetEmpName}">홍길동</div>
+                                <div class="text-faint" style="font-size:13px">
+                                    <span th:text="${target.targetDeptName}">개발팀</span>
+                                    ·
+                                    <span th:text="${target.targetPosName}">대리</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <span th:if="${target.evalStatus == null}"
+                                  class="sb-badge sb-badge--gray"><span class="pip"></span>미작성</span>
+                            <span th:if="${target.evalStatus == 'DRAFT'}"
+                                  class="sb-badge sb-badge--amber"><span class="pip"></span>임시저장</span>
+                            <span th:if="${target.evalStatus == 'SUBMITTED'}"
+                                  class="sb-badge sb-badge--green"><span class="pip"></span>제출완료</span>
+                        </div>
+
+                        <div th:if="${target.evalStatus == 'SUBMITTED' and target.weightedScore != null}"
+                             class="text-center mb-3 p-2"
+                             style="background:var(--sb-surface);border-radius:8px">
+                            <div class="text-faint" style="font-size:12px">종합 점수</div>
+                            <div style="font-size:22px;font-weight:650"
+                                 th:text="${#numbers.formatDecimal(target.weightedScore, 1, 2)}">4.20</div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <a th:if="${target.evalStatus == null}"
+                               th:href="@{/eval/add(periodId=${period.periodId},targetEmpId=${target.targetEmpId})}"
+                               class="btn btn-sb btn-sm d-block text-center">
+                                <i class="bi bi-pencil"></i>
+                                평가 작성
+                            </a>
+                            <a th:if="${target.evalStatus == 'DRAFT'}"
+                               th:href="@{/eval/edit(evalId=${target.evalId})}"
+                               class="btn btn-sb btn-sm d-block text-center">
+                                <i class="bi bi-pencil"></i>
+                                이어서 작성
+                            </a>
+                            <a th:if="${target.evalStatus == 'SUBMITTED' and period.periodStatus == 'OPEN'}"
+                               th:href="@{/eval/edit(evalId=${target.evalId})}"
+                               class="btn btn-ghost btn-sm d-block text-center">
+                                <i class="bi bi-pencil"></i>
+                                수정
+                            </a>
+                            <a th:if="${target.evalStatus == 'SUBMITTED'}"
+                               th:href="@{/eval/detail(evalId=${target.evalId})}"
+                               class="btn btn-ghost btn-sm d-block text-center">
+                                <i class="bi bi-eye"></i>
+                                제출한 평가 보기
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</section>
+</body>
+</html>

@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      layout:decorate="~{fragments/layout}">
+<head>
+    <title th:text="${res.resName} + ' · 자원 상세'">자원 상세</title>
+</head>
+<body>
+<main layout:fragment="content" class="sb-content">
+  <div class="sb-page-head">
+    <div class="sb-page-head__txt">
+      <div class="sb-breadcrumb">
+        <a th:href="@{/res/list}">자원 관리</a>
+        <i class="bi bi-chevron-right"></i> 자원 상세
+      </div>
+      <h1 th:text="${res.resName}"></h1>
+      <p>자원 상세 정보를 확인합니다.</p>
+    </div>
+    <div class="sb-page-head__actions">
+      <a th:href="@{/res/list}" class="btn btn-ghost ms-auto">
+      	<i class="bi bi-arrow-left"></i> 목록으로
+      </a>
+    </div>
+  </div>
+
+  <div class="sb-card">
+    <div class="sb-card__head">
+      <h2>자원 정보</h2>
+    </div>
+    <div class="sb-card__body">
+            <div class="row g-3">
+                <!-- 1그룹: 자원코드 / 자원명 / 자원유형 -->
+                <div class="col-md-3">
+                    <label for="resCode" class="sb-form-label">자원코드 <span style="color:var(--sb-red)">*</span></label>
+                    <input type="text" name="resCode" id="resCode" class="form-control"
+                           placeholder="예: RM004" maxlength="50" th:value="${res.resCode}" readonly>
+                </div>
+                <div class="col-md-6">
+                    <label for="resName" class="sb-form-label">자원명 <span style="color:var(--sb-red)">*</span></label>
+                    <input type="text" name="resName" id="resName" class="form-control"
+                           th:value="${res.resName}" readonly>
+                </div>
+                <div class="col-md-3">
+                    <label for="resType" class="sb-form-label">자원 유형</label>
+                    <input class="form-control" type="text" th:if="${res.resType == 'ROOM'}" id="resType" name="resType" value="회의실">
+                    <input class="form-control" type="text" th:if="${res.resType == 'EQUIPMENT'}" id="resType" name="resType" value="장비">
+                    <input class="form-control" type="text" th:if="${res.resType == 'VEHICLE'}" id="resType" name="resType" value="차량">
+                </div>
+
+                <!-- 2그룹: 위치 / 수량 / 수용인원 / 상태 -->
+                <div class="col-md-4">
+                    <label for="location" class="sb-form-label">위치</label>
+                    <input type="text" name="location" id="location" class="form-control"
+                           th:value="${res.location}" maxlength="200" readonly> 
+                </div>
+                <div class="col-md-2">
+                    <label for="quantity" class="sb-form-label">수량</label>
+                    <input type="number" name="quantity" id="quantity" class="form-control"
+                           th:value="${res.quantity}" min="0" readonly>
+                </div>
+                <div class="col-md-3">
+                    <label for="capacity" class="sb-form-label">수용인원</label>
+                    <input type="number" name="capacity" id="capacity" class="form-control"
+                           th:value="${res.capacity}" min="1" placeholder="회의실인 경우 입력" readonly>
+                </div>
+                <div class="col-md-3">
+                    <label for="resStatus" class="sb-form-label">상태</label>
+                    <input class="form-control" type="text" th:if="${res.resStatus == 'AVAILABLE'}" id="resStatus" name="resStatus" value="사용가능">
+                    <input class="form-control" type="text" th:if="${res.resStatus == 'MAINTENANCE'}" id="resStatus" name="resStatus" value="점검중">
+                    <input class="form-control" type="text" th:if="${res.resStatus == 'DISABLED'}" id="resStatus" name="resStatus" value="사용중지">
+                </div>
+
+                <!-- 3그룹: 비고 -->
+                <div class="col-12">
+                    <label for="remark" class="sb-form-label">비고</label>
+                    <input type="text" name="remark" id="remark" class="form-control" readonly>
+                </div>
+
+                <!-- 4그룹: 담당자 -->
+                <div class="col-12">
+                    <label for="managerEmpId" class="dd-label">담당자</label>
+                    <div class="view-val">
+                    <th:block th:if="${res.managerEmpId != null}">
+                            <span class="sb-avatar" style="width:22px;height:22px;font-size:11px"
+                                  th:text="${#strings.substring(res.managerEmpName, 0, 1)}"></span>
+                            <span class="ms-1" th:text="${res.managerEmpName} + ' ' + ${res.managerPosName}"></span>
+                            <span class="text-faint ms-1" style="font-size:11.5px" th:text="'#' + ${res.managerEmpNo}"></span>
+                        </th:block>
+                        <span th:unless="${res.managerEmpId != null}" class="view-val-empty">지정 담당자 없음</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+  </div>
+
+  <div th:replace="~{res/modal/delModal :: deleteModal}">삭제 모달 (fragment 로딩)</div>
+
+</main>
+
+<th:block layout:fragment="script">
+<script th:inline="javascript">
+(function () {
+  "use strict";
+  const DELETE_URL = /*[[@{/res/delete}]]*/ "/res/delete";
+  const LIST_URL   = /*[[@{/res/list}]]*/ "/res/list";
+
+  const modalEl      = document.getElementById("resDelModal");
+  const headerEl     = document.getElementById("resDelHeaderLabel");
+  const iconBoxEl    = document.getElementById("resDelIconBox");
+  const nameEl       = document.getElementById("resDelName");
+  const mainWarnEl   = document.getElementById("resDelMainWarning");
+  const resvWarnEl   = document.getElementById("resDelReservationWarn");
+  const resvWarnText = document.getElementById("resDelReservationWarnText");
+  const pwGroupEl    = document.getElementById("resDelPwGroup");
+  const empPass      = document.getElementById("empPass");
+  const pwErr        = document.getElementById("delPwErr");
+  const pwErrMsg     = document.getElementById("delPwErrMsg");
+  const cancelBtn    = document.getElementById("resDelCancelBtn");
+  const yesBtn       = document.getElementById("resDelYes");
+  const yesLabelEl   = document.getElementById("resDelYesLabel");
+  const csrfInput    = document.getElementById("resCsrfToken");
+
+  let curResId = null;
+  const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+
+  /* [변경점 · dept/deptTreeTab.html의 openDelModal과 동일한 아키텍처]
+     서버에 AJAX로 물어보지 않고, 클릭된 버튼의 data-reservationcount만 보고 즉시 상태를 바꿈. */
+  function openDelModal(btn) {
+    const resId    = btn.dataset.id;
+    const resName  = btn.dataset.name;
+    const resvCount = +btn.dataset.reservationcount || 0;
+
+    curResId = resId;
+    nameEl.textContent = resName;
+    empPass.value = "";
+    empPass.classList.remove("is-invalid");
+    pwErr.style.display = "none";
+
+    if (resvCount > 0) {
+      /* ① 차단 상태 — 서버에서도 막히는 요청이므로 아예 보내지 않는다 */
+      headerEl.innerHTML   = '<i class="bi bi-x-circle me-1"></i>삭제할 수 없습니다';
+      headerEl.style.color = "var(--sb-red)";
+      iconBoxEl.style.background = "var(--sb-red-soft)";
+      iconBoxEl.style.color      = "var(--sb-red)";
+      iconBoxEl.innerHTML        = '<i class="bi bi-slash-circle"></i>';
+      mainWarnEl.innerHTML = '이 자원에는 진행 중인 예약이 <b>' + resvCount + '</b>건 있습니다.';
+
+      resvWarnEl.style.display = "";
+      resvWarnText.textContent = "예약이 있는 동안에는 삭제(해체)를 진행할 수 없습니다.";
+      pwGroupEl.style.display  = "none";
+
+      cancelBtn.textContent = "닫기";
+      yesBtn.style.display  = "none"; /* 실패할 요청이므로 확인 버튼 자체를 숨김 */
+    } else {
+      /* ② 예약 없음 — 비밀번호 확인 후 삭제 */
+      yesBtn.style.display = "";
+      headerEl.innerHTML   = '<i class="bi bi-shield-exclamation me-1"></i>자원 삭제';
+      headerEl.style.color = "var(--sb-red)";
+      iconBoxEl.style.background = "";
+      iconBoxEl.style.color      = "var(--sb-red)";
+      iconBoxEl.innerHTML        = '<i class="bi bi-box-seam"></i>';
+      mainWarnEl.innerHTML = '계속하려면 <b>비밀번호</b>를 입력하세요.';
+
+      resvWarnEl.style.display = "none";
+      pwGroupEl.style.display  = "";
+
+      cancelBtn.textContent = "취소";
+      yesLabelEl.textContent = "삭제 확인";
+    }
+
+    modal.show();
+    if (resvCount === 0) setTimeout(() => empPass.focus(), 300);
+  }
+
+  document.addEventListener("click", function (e) {
+    const btn = e.target.closest(".res-del");
+    if (!btn) return;
+    openDelModal(btn);
+  });
+
+  empPass.addEventListener("input", () => {
+    pwErr.style.display = "none";
+    empPass.classList.remove("is-invalid");
+  });
+  empPass.addEventListener("keydown", ev => {
+    if (ev.key === "Enter") { ev.preventDefault(); yesBtn.click(); }
+  });
+
+  yesBtn.addEventListener("click", () => {
+    // 차단 상태에서는 yesBtn 자체가 숨겨져 있어 여기 도달하지 않음(정상적인 경우)
+    fetch(DELETE_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: "resId=" + encodeURIComponent(curResId)
+          + "&empPass=" + encodeURIComponent(empPass.value)
+          + "&" + csrfInput.name + "=" + encodeURIComponent(csrfInput.value)
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        location.href = LIST_URL;
+      } else {
+        pwErrMsg.textContent = data.message;
+        pwErr.style.display = "";
+        empPass.classList.add("is-invalid");
+        empPass.focus();
+      }
+    })
+    .catch(() => alert("삭제 처리 중 오류가 발생했습니다."));
+  });
+})();
+</script>
+</th:block>
+</body>
+</html>

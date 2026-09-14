@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{fragments/layout}">
+<head>
+    <title>평가 수정</title>
+</head>
+<body>
+<section class="eval_edit sb-content" layout:fragment="content">
+
+    <!-- 페이지 헤더 -->
+    <div class="sb-page-head">
+        <div class="sb-page-head__txt">
+            <div class="sb-breadcrumb">
+                <a th:href="@{/}">홈</a>
+                <i class="bi bi-chevron-right"></i>
+                <a th:href="@{/eval/list(periodId=${period.periodId})}">평가 작성</a>
+                <i class="bi bi-chevron-right"></i>
+                평가 수정
+            </div>
+            <h1>
+                <span th:text="${eval.targetEmpName}">홍길동</span>
+                평가 수정
+            </h1>
+            <p>
+                <span th:text="${period.title}">2026년 상반기</span>
+                ·
+                <span th:text="${eval.targetDeptName}">개발팀</span>
+                <span th:text="${eval.targetPosName}">대리</span>
+            </p>
+        </div>
+        <div class="sb-page-head__actions">
+            <a th:href="@{/eval/list(periodId=${period.periodId})}"
+               class="btn btn-ghost btn-sm">
+                <i class="bi bi-arrow-left"></i>
+                대상 목록으로
+            </a>
+        </div>
+    </div>
+
+    <form id="evalForm" method="post" th:action="@{/eval/submit}" onsubmit="return checkForm()">
+        <input type="hidden" name="evalId" th:value="${eval.evalId}"/>
+        <input type="hidden" name="periodId" th:value="${eval.periodId}"/>
+        <input type="hidden" name="targetEmpId" th:value="${eval.targetEmpId}"/>
+
+        <div class="row g-3">
+
+            <div class="col-12 col-lg-8">
+                <!-- 5개 점수 -->
+                <div class="sb-card mb-3">
+                    <div class="sb-card__head">
+                        <h2>
+                            <i class="bi bi-star me-2 text-soft"></i>
+                            정량 평가
+                        </h2>
+                        <span class="sub">각 항목 1점(매우 미흡) ~ 5점(매우 우수)</span>
+                    </div>
+                    <div class="sb-card__body">
+
+                        <!-- 성과 -->
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-baseline">
+                                <label class="sb-form-label">성과</label>
+                                <span class="text-faint" style="font-size:12px">목표 달성도와 업무 결과의 질·양</span>
+                            </div>
+                            <div class="sb-score-radio">
+                                <div th:each="n : ${#numbers.sequence(1, 5)}">
+                                    <input type="radio" name="scorePerformance" th:value="${n}"
+                                           th:id="'perf_' + ${n}"
+                                           th:checked="${eval.scorePerformance != null and eval.scorePerformance == n}"/>
+                                    <label th:for="'perf_' + ${n}" th:text="${n}">1</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 전문성 -->
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-baseline">
+                                <label class="sb-form-label">전문성</label>
+                                <span class="text-faint" style="font-size:12px">담당 업무 관련 지식·스킬</span>
+                            </div>
+                            <div class="sb-score-radio">
+                                <div th:each="n : ${#numbers.sequence(1, 5)}">
+                                    <input type="radio" name="scoreExpertise" th:value="${n}"
+                                           th:id="'exp_' + ${n}"
+                                           th:checked="${eval.scoreExpertise != null and eval.scoreExpertise == n}"/>
+                                    <label th:for="'exp_' + ${n}" th:text="${n}">1</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 협업 -->
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-baseline">
+                                <label class="sb-form-label">협업</label>
+                                <span class="text-faint" style="font-size:12px">동료·타부서와의 소통과 상호 지원</span>
+                            </div>
+                            <div class="sb-score-radio">
+                                <div th:each="n : ${#numbers.sequence(1, 5)}">
+                                    <input type="radio" name="scoreTeamwork" th:value="${n}"
+                                           th:id="'team_' + ${n}"
+                                           th:checked="${eval.scoreTeamwork != null and eval.scoreTeamwork == n}"/>
+                                    <label th:for="'team_' + ${n}" th:text="${n}">1</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 태도 -->
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-baseline">
+                                <label class="sb-form-label">태도</label>
+                                <span class="text-faint" style="font-size:12px">성실성·책임감·근태</span>
+                            </div>
+                            <div class="sb-score-radio">
+                                <div th:each="n : ${#numbers.sequence(1, 5)}">
+                                    <input type="radio" name="scoreAttitude" th:value="${n}"
+                                           th:id="'att_' + ${n}"
+                                           th:checked="${eval.scoreAttitude != null and eval.scoreAttitude == n}"/>
+                                    <label th:for="'att_' + ${n}" th:text="${n}">1</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 성장 -->
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-baseline">
+                                <label class="sb-form-label">성장</label>
+                                <span class="text-faint" style="font-size:12px">학습 의욕·개선 노력·잠재력</span>
+                            </div>
+                            <div class="sb-score-radio">
+                                <div th:each="n : ${#numbers.sequence(1, 5)}">
+                                    <input type="radio" name="scoreGrowth" th:value="${n}"
+                                           th:id="'grow_' + ${n}"
+                                           th:checked="${eval.scoreGrowth != null and eval.scoreGrowth == n}"/>
+                                    <label th:for="'grow_' + ${n}" th:text="${n}">1</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 강점 -->
+                <div class="sb-card mb-3">
+                    <div class="sb-card__head">
+                        <h2>
+                            <i class="bi bi-chat-square-quote me-2 text-soft"></i>
+                            강점
+                        </h2>
+                    </div>
+                    <div class="sb-card__body">
+                        <textarea class="form-control" id="strengthComment" name="strengthComment"
+                                  rows="5" maxlength="2000"
+                                  th:text="${eval.strengthComment}"
+                                  placeholder="강점을 구체적 사례와 함께 서술하세요."></textarea>
+                    </div>
+                </div>
+
+                <!-- 개선점 -->
+                <div class="sb-card mb-3">
+                    <div class="sb-card__head">
+                        <h2>
+                            <i class="bi bi-chat-square-dots me-2 text-soft"></i>
+                            개선점
+                        </h2>
+                    </div>
+                    <div class="sb-card__body">
+                        <textarea class="form-control" id="improvementComment" name="improvementComment"
+                                  rows="5" maxlength="2000"
+                                  th:text="${eval.improvementComment}"
+                                  placeholder="개선하면 좋을 부분을 서술하세요."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 우측 사이드 -->
+            <div class="col-12 col-lg-4">
+                <div class="sb-card sticky-top" style="top:16px">
+                    <div class="sb-card__head">
+                        <h2>
+                            <i class="bi bi-person me-2 text-soft"></i>
+                            평가 대상
+                        </h2>
+                    </div>
+                    <div class="sb-card__body">
+                        <div class="d-flex align-items-center gap-3 mb-3">
+                            <div class="sb-avatar" style="width:56px;height:56px;font-size:22px"
+                                 th:text="${#strings.substring(eval.targetEmpName, 0, 1)}">홍</div>
+                            <div>
+                                <div style="font-size:17px;font-weight:650" th:text="${eval.targetEmpName}">홍길동</div>
+                                <div class="text-faint" style="font-size:13px">
+                                    <span th:text="${eval.targetEmpNo}">EMP-001</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-2">
+                            <div class="text-faint" style="font-size:12px">부서</div>
+                            <div th:text="${eval.targetDeptName}">개발팀</div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="text-faint" style="font-size:12px">직급</div>
+                            <div th:text="${eval.targetPosName}">대리</div>
+                        </div>
+
+                        <!-- 현재 상태 -->
+                        <div class="mb-3">
+                            <div class="text-faint" style="font-size:12px">현재 상태</div>
+                            <div>
+                                <span th:if="${eval.evalStatus == 'DRAFT'}" class="sb-badge sb-badge--amber">
+                                    <span class="pip"></span>임시저장
+                                </span>
+                                <span th:if="${eval.evalStatus == 'SUBMITTED'}" class="sb-badge sb-badge--green">
+                                    <span class="pip"></span>제출완료
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="sb-form-actions" style="flex-direction:column;gap:8px">
+                            <button type="button" class="btn btn-ghost w-100" onclick="saveDraft()">
+                                <i class="bi bi-save"></i>
+                                임시 저장
+                            </button>
+                            <button type="submit" class="btn btn-sb w-100">
+                                <i class="bi bi-check-lg"></i>
+                                제출
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+
+</section>
+
+<th:block layout:fragment="script">
+<script>
+    function saveDraft() {
+        const form = document.getElementById("evalForm");
+        form.action = /*[[@{/eval/saveDraft}]]*/ '/eval/saveDraft';
+        form.submit();
+    }
+
+    function checkForm() {
+        const items = ['scorePerformance', 'scoreExpertise', 'scoreTeamwork', 'scoreAttitude', 'scoreGrowth'];
+        for (const name of items) {
+            const checked = document.querySelector(`input[name="${name}"]:checked`);
+            if (!checked) {
+                alert("모든 점수 항목을 선택해주세요.");
+                return false;
+            }
+        }
+        const strength = document.getElementById("strengthComment").value.trim();
+        const improvement = document.getElementById("improvementComment").value.trim();
+        if (!strength || !improvement) {
+            alert("강점과 개선점을 모두 입력해주세요.");
+            return false;
+        }
+        return true;
+    }
+</script>
+</th:block>
+</body>
+</html>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sb.erp.dao.PermMapper">
+<select id="selectByEmpId" resultType="AuthPermDto" parameterType="int">
+	select * 
+	from emp_auth ea 
+	join authority a on ea.aut_id = a.aut_id
+	where ea.emp_id = #{empId};
+</select>
+</mapper>

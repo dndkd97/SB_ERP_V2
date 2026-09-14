@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+  <div th:fragment="rejectModal" class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <form th:action="@{/admin/resv/reject}" method="post" id="rejectForm" novalidate>
+          <div class="modal-header">
+            <h5 class="modal-title">예약 반려</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" name="revId" id="rejectRevId">
+            <label class="sb-form-label">반려 사유</label>
+            <textarea name="rejectReason" id="rejectReason" class="form-control" rows="3"></textarea>
+            <span class="sb-field-msg text-danger" id="rejectReasonMsg" style="display:none">
+              <i class="bi bi-exclamation-circle"></i> 반려 사유를 입력하세요.
+            </span>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">닫기</button>
+            <button type="submit" class="btn btn-danger">
+              <i class="bi bi-x-lg"></i> 반려 처리
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <th:block th:fragment="rejectModalScript">
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const rejectModalEl = document.getElementById('rejectModal');
+      if (!rejectModalEl) return;
+
+      const rejectForm   = document.getElementById('rejectForm');
+      const rejectReason = document.getElementById('rejectReason');
+      const rejectMsg    = document.getElementById('rejectReasonMsg');
+      const rejectRevId  = document.getElementById('rejectRevId');
+
+      // 반려 버튼(class="btn-reject-resv" data-rev-id="...") 클릭 시 모달의 hidden revId 채우기
+      document.querySelectorAll('.btn-reject-resv').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          rejectRevId.value = this.dataset.revId;
+        });
+      });
+
+      rejectReason.addEventListener('input', function () {
+        if (this.value.trim()) {
+          this.classList.remove('is-err');
+          rejectMsg.style.display = 'none';
+        }
+      });
+
+      // 모달이 닫힐 때 입력값/에러 상태 초기화 (재오픈 시 이전 상태가 남지 않도록)
+      rejectModalEl.addEventListener('hidden.bs.modal', function () {
+        rejectReason.value = '';
+        rejectReason.classList.remove('is-err');
+        rejectMsg.style.display = 'none';
+      });
+
+      rejectForm.addEventListener('submit', function (e) {
+        if (!rejectReason.value.trim()) {
+          e.preventDefault();
+          rejectReason.classList.add('is-err');
+          rejectMsg.style.display = 'flex';
+          rejectReason.focus();
+        }
+      });
+    });
+  </script>
+  </th:block>
+</body>
+</html>

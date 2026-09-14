@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{fragments/layout.html}">
+<head>
+	<title>결재 양식 관리</title>
+	<link rel="stylesheet" th:href="@{/css/summernote-lite.min.css}"/>
+   	<meta name="_csrf" th:content="${_csrf.token}"/>
+   	<meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+</head>
+<body>
+
+<main layout:fragment="content">
+
+ <!-- 토스트 / 안내 문구 -->
+ <div class="toast-container position-fixed bottom-0 end-0 p-3" 
+ 	  style="z-index: 1080;" id="toastContainer"></div>
+ <div id="flashToastData"
+ 	  th:if="${toastMsg}"
+ 	  th:attr="data-type=${toastType} ?: 'info', data-msg=${toastMsg}"
+ 	  style="display: none;"></div>
+ <script th:src="@{/js/appr-toast.js}"></script>
+
+ <div class="sb-page-head">
+ 	<div class="sb-page-head__txt">
+ 		<div class="sb-breadcrumb">
+	 		<a th:href="@{/appr/list_form}">전자결재</a>
+	 		<i class="bi bi-chevron-right"></i>
+	 		<span>양식 관리</span>
+ 		</div>
+ 		<h1>결재 양식 작성</h1>
+ 		<p>새로운 결재 양식을 등록합니다.</p>
+ 	</div>
+ 	<div class="sb-page-head__actions">
+	 	<button type="button" class="btn btn-ghost"
+	 			th:onclick="|location.href='@{/appr/list_form}'|">
+	 			목록으로
+	 	</button>
+ 	</div>
+ </div>
+
+<form th:action="@{/appr/write_form}" method="post" onsubmit="return checkForm()">
+	<input type="hidden" th:if="${_csrf}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+	<input type="hidden" id="forSchema" name="forSchema"/>
+
+	<div class="sb-card">
+		<div class="sb-card__head">
+			<h2>기본 정보</h2>
+		</div>
+		
+		<div class="sb-card__body">	
+			<div class="row g-4 mb-4">
+				<div class="col-md-6">
+					<label for="forCode"
+						   class="sb-form-label">양식 코드</label>
+					<input type="text"
+						   class="form-control"
+						   id="forCode" name="forCode" placeholder="ex) TEST-01"/>
+					<div id="err_forCode" class="text-danger fw-semibold mt-1"
+						 style="display: none; font-size: 14px;">
+						 양식 코드를 입력해주세요
+					</div>
+					<div class="text-secondary fw-semibold mt-1 tforCode"
+						 style="font-size: 14px;">
+					</div>
+				</div>
+
+				<div class="col-md-6 position-relative">	
+					<label for="comName" class="sb-form-label">양식 추가할 회사</label>
+						<div class="ac-wrap">
+							<div class="sb-search">
+								<i class="bi bi-building"></i>
+								<input type="text" id="comName"
+								   placeholder="회사이름 입력" autocomplete="off"/>
+							</div>
+							<div class="ac-list" id="companyDropdown"></div>
+						</div>	
+						<input type="hidden" id="comId" name="comId" />
+						<div id="err_comId" class="text-danger fw-semibold mt-1"
+							 style="display: none; font-size: 14px;">
+							 추가할 회사를 선택해주세요
+						</div>
+					</div>
+				</div>
+				
+			<div class="row g-4 mb-4">
+				<div class="col-md-6">
+					<label for="forTitle" class="sb-form-label">양식 제목</label>
+					<input type="text" class="form-control"
+						   id="forTitle" name="forTitle" placeholder="ex) 병가신청서"/>
+					<div class="form-text text-faint mt-1">결재 양식의 제목을 입력하세요.</div>
+					<div id="err_forTitle" class="text-danger fw-semibold mt-1"
+						 style="display: none; font-size: 14px;">
+						 양식 제목을 입력해주세요
+					</div>
+				</div>
+				<div class="col-md-6">
+					<label class="sb-form-label">활성화 여부</label>
+					<div class="sb-info-box d-flex align-items-center justify-content-start gap-5">
+						<div>
+							<strong>양식 활성화</strong>
+							<div class="form-text text-secondary mt-1 mb-0" style="font-size: 13px;">
+								활성화된 양식만 문서 작성 시 선택 목록에 나타납니다.
+							</div>
+						</div>
+						<div class="form-check form-switch mb-0 flex-shrink-0">
+							<input class="form-check-input sb-checkbox"
+								   type="checkbox" id="forStatus" name="forStatus"
+								   style="width: 40px; height: 20px;"/>
+						</div>
+					</div>
+				</div>
+			</div>
+			
+			<div class="sb-card mb-4">
+				<div class="sb-card__head">
+					<h2>작성 방식 선택</h2>
+				</div>
+				<div class="sb-card__body">
+					<div class="d-flex gap-3">
+						<div class="form-check">
+							<input class="form-check-input" type="radio" name="editMode" id="modeEditor" value="editor" checked/>
+							<label class="form-check-label" for="modeEditor">직접 작성</label>
+						</div>
+						<div class="form-check">
+							<input class="form-check-input" type="radio" name="editMode" id="modeAi" value="ai"/>
+							<label class="form-check-label" for="modeAi">AI로 자동 생성</label>
+						</div>
+					</div>
+				</div>
+			</div>
+			
+			<div class="sb-card mb-4" style="display: none;">
+				<div class="sb-card__head">
+					<h2>AI 양식 생성</h2>
+				</div>
+					<div class="sb-card__body">
+						<div class="d-flex flex-column mb-3">
+							<label class="sb-form-label">원하는 양식을 설명하세요</label>
+							<textarea id="aiPrompt" class="form-control"
+									  rows="3" placeholder="외부 교육/세미나 비용 청구 양식 만들어줘. 신청자, 교육일, 기관명, 총비용, 상세내용 필드 필요해."></textarea>
+						</div>
+						
+						<button type="button" class="btn btn-sm btn-outline-primary mt-2" id="aiGenerateBtn">
+							<i class="bi bi-stars"></i> AI로 필드 생성
+						</button>
+						<div id="aiLoading" style="display: none;" class="ai-loading-box mt-2">
+							 <div class="ai-loading-spinner">
+								<div class="spinner-grow spinner-grow-sm text-primary" role="status"></div>
+							 </div>
+							 <span id="aiLoadingMsg" class="ai-loading-text">프롬프트를 분석하고 있습니다.</span>
+						</div>
+						<div id="aiPreview" style="display: none;" class="mt-3">
+							<label class="sb-form-label">생성된 필드 미리보기</label>
+							<div id="aiFieldList" class="d-flex flex-column gap-2"></div>
+						</div>
+					</div>
+				</div>
+
+			
+			<div class="mt-4" id="contentEditorBox">
+				<label for="forContent" class="sb-form-label">양식 내용</label>
+				<div class="mb-2 d-flex gap-2 align-items-center">
+					<label class="sb-form-label mb-0">추천 양식 프레임 주입</label>
+					<button type="button" class="btn btn-sm btn-outline-primary"
+							onclick="injectTemplate('leave')">휴가 신청서</button>
+					<button type="button" class="btn btn-sm btn-outline-primary"
+							onclick="injectTemplate('expense')">지출 결의서</button>
+					<button type="button" class="btn btn-sm btn-outline-primary"
+							onclick="injectTemplate('biz')">일반 기안서</button>
+				</div>
+				<textarea name="forContent" rows="10" cols="40"
+					      class="form-control" id="forContent"></textarea>							  		 
+				<div class="form-text text-faint mt-2">결재 양식의 내용을 작성하세요.</div>
+				<div id="err_forContent" class="text-danger fw-semibold mt-1"
+						 style="display: none; font-size: 14px;">
+						 양식 내용을 입력해주세요
+				</div>
+			</div>
+			
+			<div class="sb-divider"></div>
+			
+			<div class="d-flex justify-content-end gap-2">
+				<button type="button" class="btn btn-ghost"
+						th:onclick="|location.href='@{/appr/list_form}'|">
+						취소
+				</button>
+				<button type="submit" class="btn btn-sb">
+						작성
+				</button>
+			</div>
+		</div>
+	</div>
+</form>
+	
+	<!-- jquery 로드 -->
+	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+	
+	<!-- js파일 로드 -->
+	<script th:src="@{/js/summernote-lite.min.js}"></script>
+	
+	<script>
+	/////////////////////////////// 웹 에디터 ///////////////////////////////
+	
+		(function(){
+			// 제이쿼리, 써머노트 메모리에 등록될때까지 확인
+			var initTimer = setInterval(function(){
+				if (typeof window.jQuery !== 'undefined' && window.jQuery.fn.summernote){
+					clearInterval(initTimer);
+					
+					// 써머노트 에디터 구동
+					window.jQuery('#forContent').summernote({
+						placeholder: '양식 내용을 입력해 주세요.',
+						tabsize: 2,
+						height: 350,
+						toolbar:[
+							['style',['style']],
+							['font', ['bold', 'italic', 'underline', 'clear']],
+							['color', ['color']],
+							['para', ['ul', 'ol', 'paragraph']],
+							['table', ['table']],
+							['insert', ['link', 'picture']],
+							['view', ['fullscreen', 'codeview']]
+						]
+					});
+				}
+			}, 50);
+		})();
+	
+	/////////////////////////////// 웹 에디터 ///////////////////////////////
+	</script>
+
+
+<script>
+
+	/////////////////////////////// 양식 주입 ///////////////////////////////
+	
+	// 템플릿 문자열 정의
+	const templates = {
+		// 휴가 신청서
+		leave: `
+		<div class="appr-table-wrap">
+			<table class="appr-table">
+				<tbody>
+					<tr>
+						<th colspan="4" style="font-size: 20px; padding: 15px; background-color: #e9ecef;">휴 가 신 청 서</th>
+					</tr>
+					<tr>
+						<td class="appr-title-cell">휴가 종류</td>
+						<td>(연차 / 오전반차 / 오후반차 / 공가 / 병가) 중 기입</td>
+						<td class="appr-title-cell">비상 연락처</td>
+						<td>010-</td>
+					</tr>
+					<tr>
+						<td class="appr-title-cell">기간</td>
+						<td colspan="3">2026년 __월 __일 ~ 2026년 __월 __일 (총 __일간)</td>
+					</tr>
+					<tr>
+						<td class="appr-title-cell">휴가 사유</td>
+						<td colspan="3" style="height: 150px; vertical-align: top;">
+							<p>※ 구체적인 휴가 사유를 입력해 주세요.</p>
+						</td>
+					</tr>
+					<tr>
+						<td colspan="4" style="text-align: center; color: #666; font-size: 12px; background-color: #fafafa;">
+							위와 같이 휴가를 신청하오니 승인하여 주시기 바랍니다.
+						</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+		`,
+		// 지출 결의서
+		expense: `
+		<div class="appr-table-wrap">
+		    <table class="appr-table">
+		        <tbody>
+		            <tr>
+		                <th colspan="5" style="font-size: 20px; padding: 15px; background-color: #e9ecef;">지 출 결 의 서</th>
+		            </tr>
+		            <tr>
+		                <td class="appr-title-cell">회계 구분</td>
+		                <td>(법인카드 / 개인환급 / 세금계산서)</td>
+		                <td class="appr-title-cell">총 지출 금액</td>
+		                <td colspan="2" style="font-weight: bold; color: #0d6efd;">금 ________________ 원정 (₩               )</td>
+		            </tr>
+		            <tr>
+		                <th style="width: 30%;">지출 내역 (적요)</th>
+		                <th style="width: 20%;">수량</th>
+		                <th style="width: 20%;">단가</th>
+		                <th style="width: 20%;">금액</th>
+		                <th style="width: 10%;">비고</th>
+		            </tr>
+		            <tr>
+		                <td style="height: 35px;">예) 사무실 탕비실 비품 구매</td>
+		                <td style="text-align: center;">1</td>
+		                <td style="text-align: right;">50,000</td>
+		                <td style="text-align: right;">50,000</td>
+		                <td></td>
+		            </tr>
+		            <tr>
+		                <td style="height: 35px;"></td>
+		                <td></td>
+		                <td></td>
+		                <td></td>
+		                <td></td>
+		            </tr>
+		            <tr>
+		                <td class="appr-title-cell" style="text-align: center;">합계</td>
+		                <td></td>
+		                <td></td>
+		                <td style="text-align: right; font-weight: bold;">50,000</td>
+		                <td></td>
+		            </tr>
+		        </tbody>
+		    </table>
+		</div>
+		`,
+		// 일반 기안서
+		biz: `
+		<div class="appr-table-wrap">
+		    <table class="appr-table">
+		        <tbody>
+		            <tr>
+		                <th colspan="2" style="font-size: 20px; padding: 15px; background-color: #e9ecef;">기 안 / 품 의 서</th>
+		            </tr>
+		            <tr>
+		                <td class="appr-title-cell">기안 제목</td>
+		                <td style="font-weight: bold;">[기안 제목을 입력하세요]</td>
+		            </tr>
+		            <tr>
+		                <td class="appr-title-cell">시행 일자</td>
+		                <td>2026년 __월 __일</td>
+		            </tr>
+		            <tr>
+		                <td class="appr-title-cell" style="height: 250px; vertical-align: top;">기안 내용</td>
+		                <td style="vertical-align: top;">
+		                    <p><strong>1. 목적 및 배경</strong></p>
+		                    <p>- 내용을 입력하세요.</p>
+		                    <p>&nbsp;</p>
+		                    <p><strong>2. 주요 골자 (상세 내용)</strong></p>
+		                    <p>- 내용을 입력하세요.</p>
+		                    <p>&nbsp;</p>
+		                    <p><strong>3. 기대 효과 및 결론</strong></p>
+		                    <p>- 내용을 입력하세요.</p>
+		                </td>
+		            </tr>
+		        </tbody>
+		    </table>
+		</div>
+		`
+	};
+	
+	// 양식 주입 버튼 클릭시 안내
+	function injectTemplate(type){
+		if(confirm("선택한 결재 템플릿을 불러 오시겠습니까?")){
+			// 제이쿼리로 서머노트에 html코드를 직접 주입
+			window.jQuery('#forContent').summernote('code', templates[type]);
+		}
+	}
+	
+	/////////////////////////////// 양식 주입 ///////////////////////////////
+
+let valid = false; // 강제 입력시 막아줄 전역 변수
+
+	/////////////////////////////// 빈칸 처리 ///////////////////////////////
+	
+	function checkForm(){
+	
+		// AI 토글인지 판별
+		const isAiMode = document.getElementById("modeAi").checked;
+	
+		// 빈칸 체크할 요소들 매핑 {key : value}
+		// 아래처럼 매핑 안하면 일일이 하나씩 getElementById 를써서 비교하고 변경해야함
+		const fields = [
+			{ id: "forCode", errId: "err_forCode"},
+			{ id: "forTitle", errId: "err_forTitle"},
+			{ id: "comId", errId: "err_comId", focusId: "comName"},
+		];
+		
+		// 둘중 하나는 입력된지 확인해야함
+		if(isAiMode){
+			fields.push({ id: "forSchema", errId: "err_forContent", focusId: "aiPrompt" });
+		}
+		else{
+			fields.push({ id: "forContent", errId: "err_forContent", isEditor: true });
+		}
+		
+		let result = true;
+		let focusElement = null;
+		
+		// 에러 초기화
+		fields.forEach(field => {
+			let id = document.getElementById(field.id);
+			let errId = document.getElementById(field.errId);
+			
+			if(!id) {return;}
+			
+			// 테두리 제거 및 에러 초기화
+			if(field.isEditor){
+				const editorElement = id.nextElementSibling;
+				if(editorElement && editorElement.classList.contains('note-editor')){
+					editorElement.classList.remove("is-invalid");
+				}
+			}		
+			else{
+				id.classList.remove("is-invalid");	
+			}
+			
+			if(field.focusId){
+				document.getElementById(field.focusId).classList.remove("is-invalid");
+			}
+			
+			// 에러 구문 제거
+			if(errId){
+				errId.style.display = "none";
+			}
+			
+			let isEmpty = false;
+			
+			if(field.isEditor){
+				// summernot 에디터 빈값 체크
+				const editorCode = window.jQuery('#' + field.id).summernote('code');
+				// 에디터가 완전히 비었거나 태그만 남은경우
+				isEmpty = window.jQuery('#' + field.id).summernote('isEmpty') ||
+						  editorCode === '' ||
+						  editorCode === '<p><br></p>';
+			}
+			else {
+				// 일반 textarea 체크
+				isEmpty = id.value.trim() == "";
+			}
+			
+			// 비어있는 값 체크
+			if(isEmpty){
+				if(field.isEditor){
+					const editorElement = id.nextElementSibling;
+					if(editorElement && editorElement.classList.contains('note-editor')){
+						editorElement.classList.add("is-invalid");
+					}
+				}
+				else if(field.focusId){
+					const fTarget = document.getElementById(field.focusId);
+					if(fTarget){
+						fTarget.classList.add("is-invalid");
+					}
+				}
+				else{
+					id.classList.add("is-invalid");
+				}
+				
+				if(errId) {
+					errId.style.display = "block";
+				}
+				if(!focusElement){
+					focusElement = field.focusId ? document.getElementById(field.focusId) : id;
+				}
+				
+				result = false;
+			}
+			
+		});
+		// 양식 중복 인데 강제로 작성 눌렀을시 제어
+		if(!result){
+			if(focusElement){
+				focusElement.focus();
+			}
+			return false;
+		}
+
+		if(!valid){
+			alert("중복된 양식코드는 사용할수 없습니다.");
+			document.getElementById("forCode").focus();
+			return false;
+		}
+
+		return true;
+
+	}
+	
+	/////////////////////////////// 빈칸 처리 ///////////////////////////////
+	
+	
+	/////////////////////////////// 양식 중복 처리 ///////////////////////////////
+	
+	window.addEventListener("load", function(){
+		let forCode = document.getElementById("forCode"); // forCode 가져오기
+		let tforCode = document.querySelector(".tforCode"); // 입력 결과 출력할 부분 가져오기
+		let comIdElement = document.getElementById("comId");
+		
+		// 검증 로직
+		function checkFormCode(){
+			let value = forCode.value.trim();
+			let comIdVal = comIdElement ? comIdElement.value.trim() : "";
+			
+			valid = false; // 초기화
+			
+			// 양식 검사에 회사의 id값이 필요해 먼저 하도록 유도
+			if(comIdVal === ""){
+				// 값이 아직 없거나 회사 선택 이벤트에서 호출된경우 리턴
+				if(value === "") return;
+				tforCode.textContent = "양식을 추가할 회사를 먼저 검색하여 선택해주세요.";
+				tforCode.className = "text-danger fw-semibold mt-1 tforCode";
+				forCode.classList.remove("is-valid");
+				forCode.classList.add("is-invalid");
+				return;
+			}
+			
+			if(value === ""){
+				tforCode.textContent = "";
+				tforCode.className = "tforCode";
+				forCode.classList.remove("is-valid", "is-invalid");
+				return;
+			}
+		
+			fetch(`/appr/checkCode?code=${encodeURIComponent(value)}&comId=${encodeURIComponent(comIdVal)}`)
+			.then( response => response.json() )
+			.then( data => {
+				
+				// 초기화
+				tforCode.className = "fw-semibold mt-1 tforCode";
+                forCode.classList.remove("is-valid", "is-invalid");
+                
+				if(data.checkCode){
+					tforCode.textContent = "사용 가능한 양식코드 입니다" ;
+					tforCode.classList.add("valid-feedback");
+					forCode.classList.add("is-valid");
+					valid = true;
+				}
+				else{
+					tforCode.textContent = "중복된 양식코드 입니다" ;
+					tforCode.classList.add("invalid-feedback");
+					forCode.classList.add("is-invalid");
+					valid = false;
+				}
+			})
+			.catch( err => {
+				tforCode.textContent = "서버 오류" ;
+				tforCode.classList.add("invalid-feedback");
+				forCode.classList.add("is-invalid");
+				valid = false;
+			});
+		}
+		
+		// 양식 코드 입력시
+		forCode.addEventListener("keyup", checkFormCode);
+		
+		// 바깥에도 호출할수 있게 노출
+		window.checkFormCode = checkFormCode;
+	});
+	
+	/////////////////////////////// 양식 중복 처리 ///////////////////////////////
+	
+	
+	/////////////////////////////// 회사 이름 검색 ///////////////////////////////
+	
+	window.addEventListener("load", function(){
+		
+		let companySearch = document.getElementById("comName");
+		let comId = document.getElementById("comId");
+		let companyDropdown = document.getElementById("companyDropdown");
+		
+		// 입력 할때마다 실행
+		companySearch.addEventListener("keyup", function(e){
+			let value = e.target.value.trim();
+			
+			if(value !== "") {
+				// 데이터를 /searchCompany 경로에 company라는 이름으로 보냄
+				fetch(`/appr/searchCompany?company=${encodeURIComponent(value)}`)
+				.then(response => response.json())
+				.then(data => {
+					companyDropdown.innerHTML = ""; // 기존 목록 비우기
+					
+					if(data && data.length > 0){
+						companyDropdown.style.display = "block";
+						
+						data.forEach(item => {
+							let btn = document.createElement("button");
+							btn.type = "button";
+							btn.className = "dropdown-item d-flex justify-content-between align-items-center";
+							
+							// 태그 생성
+							let nameSpan = document.createElement("span");
+							// 생성된 태그에 클래스 추가
+							nameSpan.className = "company-name";
+							// 회사이름
+							btn.textContent = item.comName;
+							
+							// 위와 동일, 사업자 번호 파트
+							let bizSpan = document.createElement("span");
+							bizSpan.className = "text-muted small ms-2";
+							bizSpan.textContent = item.bizNo;
+							
+							// 삽입
+							btn.appendChild(nameSpan);
+							btn.appendChild(bizSpan);
+							
+							// 검색해서 나온 회사 이름 클릭
+							btn.addEventListener("click", function(){
+								companySearch.value = item.comName; // 회사이름 넣기
+								comId.value = item.comId; // insert구문 실행위해 com_id 값 넣기
+								companyDropdown.style.display = "none"; // 드롭다운 닫기
+								// 회사가 선택되면 재검증
+								if(window.checkFormCode) window.checkFormCode();
+							});
+							companyDropdown.appendChild(btn);
+						});
+					}
+					else{ // 검색결과 없을때
+						companyDropdown.innerHTML = "<span class='dropdown-item text-muted disabled'>검색 결과가 없습니다.</span>";
+						companyDropdown.style.display = "block";
+					}
+				})
+				.catch(error => {
+					console.error("회사 검색 오류:",error);
+					companyDropdown.style.display = "none";
+				});
+			}
+			else{ // 입력란 비어있을때 처리
+				comId.value = "";
+				companyDropdown.innerHTML = "";
+				companyDropdown.style.display = "none";
+				
+			}
+		});
+		// 입력창 외부공간 클릭시 정리
+		document.addEventListener("click", function(e){
+			if(e.target !== companySearch && e.target !== companyDropdown){
+				companyDropdown.style.display = "none";
+			}
+		});
+	});
+	
+	/////////////////////////////// 회사 이름 검색 ///////////////////////////////
+	
+	/////////////////////////////// 양식 선택 토글 ///////////////////////////////
+	
+	document.querySelectorAll('input[name="editMode"]').forEach(radio => {
+		radio.addEventListener("change", function(){
+			const isAi = this.value === "ai";
+			
+			// AI 영역 / 에디터 영역 토글
+			document.querySelector('#contentEditorBox').style.display = isAi ? "none" : "block";
+			document.getElementById("aiPreview").closest(".sb-card").style.display = isAi ? "block" : "none";
+			
+			if(isAi){ // 반대 모드에서 넘어온값 비우기
+				window.jQuery('#forContent').summernote('code', '');
+			}
+			else{
+				document.getElementById("forSchema").value = "";
+				document.getElementById("aiPreview").style.display = "none";
+				document.getElementById("aiFieldList").innerHTML = "";
+			}
+		});
+	});
+	
+	
+	/////////////////////////////// 양식 선택 토글 ///////////////////////////////
+	
+	/////////////////////////////// openAi 호출 ///////////////////////////////
+	
+	const AI_LOADING_PHRASES = [
+		"프롬프트를 분석 중",
+		"필요한 필드를 구성 중",
+		"입력 항목의 유효성 정리 중",
+		"거의 완료됨"
+	];
+	
+	document.getElementById("aiGenerateBtn").addEventListener("click", function(){
+		const promptInput = document.getElementById("aiPrompt");
+		const prompt = document.getElementById("aiPrompt").value.trim();
+		if(!prompt){
+			alert("원하시는 양식에 대한 설명을 입력해주세요");
+			return;
+		}
+		
+		const btn = this;
+		const loading = document.getElementById("aiLoading");
+		const loadingMsg = document.getElementById("aiLoadingMsg");
+		
+		btn.disabled = true;
+		promptInput.disabled = true;
+		loading.style.display = "block";
+		
+		// 상태 메시지 순환
+		let phraseIdx = 0;
+		loadingMsg.textContent = AI_LOADING_PHRASES[0];
+		const phraseTimer = setInterval( () => {
+			phraseIdx = (phraseIdx + 1) % AI_LOADING_PHRASES.length;
+			loadingMsg.textContent = AI_LOADING_PHRASES[phraseIdx];
+		}, 1400);
+		
+		fetch("/appr/formSchema", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				[document.querySelector('meta[name="_csrf_header"]').content]:
+					document.querySelector('meta[name="_csrf"]').content
+			},
+			body: JSON.stringify({ prompt })
+		})
+		.then(response => response.json())
+		.then(data => {
+			if(!data.success){
+				alert(data.message || "AI 양식 생성에 실패했습니다.");
+				return;
+			}
+			renderAiPreview(data.schema);
+			document.getElementById("forSchema").value = data.schema;
+		})
+		.catch(err => {
+			console.error("AI 양식 생성 오류", err);
+			alert("서버 오류로 AI 양식 생성에 실패했습니다.");
+		})
+		.finally(() => {
+			clearInterval(phraseTimer);
+			btn.disabled = false;
+			promptInput.disabled = false;
+			loading.style.display = "none";
+		})
+	});
+	
+	function renderAiPreview(schemaJsonStr){
+		let schema;
+		try {
+			schema = JSON.parse(schemaJsonStr);
+		} catch(e) {
+			console.error("JSON 파싱 실패", e);
+			alert("AI 응답을 해석하지 못했습니다. 다시 시도해주세요.");
+			return;
+		}
+		
+		const preview = document.getElementById("aiPreview");
+		const list = document.getElementById("aiFieldList");
+		list.innerHTML = "";
+		
+		(schema.fields || []).forEach(field => {
+			const div = document.createElement("div");
+			div.className = "d-flex align-items-center gap-2 p-2 border rounded";
+			div.innerHTML = `
+				<span class="badge bg-light text-dark border">${field.type}</span>
+				<span class="fw-semibold">${field.label}</span>
+				<span class="text-muted small">(${field.key})</span>
+				${field.required ? '<span class="badge bg-danger ms-auto">필수</span>' : ''}
+			`;
+			list.appendChild(div);
+		});
+		preview.style.display = "block";
+	}
+	
+	/////////////////////////////// openAi 호출 ///////////////////////////////
+</script>
+</main>
+</body>
+</html>

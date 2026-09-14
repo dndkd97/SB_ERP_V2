@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+	xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head lang="ko">
+<title>sidebar fragment</title>
+</head>
+<body>
+	<th:block th:fragment="sidebar">
+
+		<div class="sb-brand">
+			<div class="sb-brand__mark">S</div>
+			<div class="sb-brand__name">
+				SB<b>erp</b>
+			</div>
+		</div>
+
+		<th:block
+			th:with="isRoot=${#authorization.expression('hasAuthority(''ROOT'')')}">
+			<th:block
+				th:with="isAdmin=${#authorization.expression('hasRole(''ADMIN'')')}">
+
+				<nav class="sb-nav" id="sbNav">
+					<a class="sb-nav__item" data-page="dashboard" data-tip="대시보드"
+						th:href="@{/}"> <i class="bi bi-grid-1x2-fill"></i><span
+						class="sb-nav__label">대시보드</span>
+					</a>
+
+					<div class="sb-nav__section">조직 관리</div>
+
+					<!-- cyj -->
+			        <!-- 관리자 : 회사·부서 통합 관리 -->
+				    <a class="sb-nav__item" data-page="comlist" data-tip="회사 • 부서 관리" th:if="${isRoot}" th:href="@{/com/list}">
+				        <i class="bi bi-building-fill-gear"></i><span class="sb-nav__label">회사 • 부서 관리</span>
+				    </a>
+				
+				    <!-- 일반 사용자 : 내 회사 정보 -->
+				    <a class="sb-nav__item" data-page="commypage" data-tip="내 회사 정보" th:href="@{/com/my}">
+				        <i class="bi bi-building"></i><span class="sb-nav__label">내 회사 정보</span>
+				    </a>
+				
+				    <a class="sb-nav__item" data-page="deptlist" data-tip="회사 내 부서 조회" th:href="@{/dept/list}">
+				        <i class="bi bi-diagram-3"></i><span class="sb-nav__label">회사 내 부서 조회</span>
+				    </a>
+			
+				    <!-- 일반 사용자 : 내 부서 정보 -->
+				    <a class="sb-nav__item" data-page="deptmy" data-tip="내 부서 정보" th:href="@{/dept/detail}">
+				        <i class="bi bi-tag"></i><span class="sb-nav__label">내 부서 정보</span>
+				    </a>
+
+					<!-- 회사 관리자: 부서 이관 대상 관리 -->
+					<a class="sb-nav__item" data-page="deptpending"
+						data-tip="부서 이관 대상 관리" th:if="${isAdmin}"
+						th:href="@{/dept/transfer/pending}"> <i
+						class="bi bi-signpost-split"></i><span class="sb-nav__label">부서
+							이관 대상 관리</span>
+					</a>
+
+					<!-- 회사 관리자: 부서 이력 관리 -->
+					<a class="sb-nav__item" data-page="depttranslog" data-tip="부서 이력 관리"
+						th:if="${isAdmin}" th:href="@{/dept/transfer/log}"> <i
+						class="bi bi-clock-history"></i><span class="sb-nav__label">부서
+							이력 관리</span>
+					</a>
+					<!-- cyj -->
+
+					<!-- jsj -->
+					<div class="sb-nav__section">인사 관리</div>
+					<!-- 일반 사용자: 사원 관리 조회까지 -->
+					<a class="sb-nav__item" data-page="employees" data-tip="사원 관리"
+						th:href="@{/emp/list}"> <i class="bi bi-people"></i> <span
+						class="sb-nav__label">사원 정보</span>
+					</a>
+					<!-- 관리자 : 직급/권한/인사 평가 관리 -->
+					<a class="sb-nav__item" data-page="position" data-tip="직급 관리"
+						th:if="${isAdmin}" th:href="@{/pos/list}">
+						<i class="bi bi-briefcase"></i>
+						<span class="sb-nav__label">직급 관리</span>
+					</a>
+					<a class="sb-nav__item" data-page="permissions" data-tip="권한 관리"
+						th:if="${isAdmin}" th:href="@{/perm/list}">
+						<i class="bi bi-shield-lock"></i>
+						<span class="sb-nav__label">권한 관리</span>
+					</a>
+					<a class="sb-nav__item" data-page="evalperiodlist" data-tip="인사 평가"
+						th:if="${isAdmin}" th:href="@{/eval/period/list}"> <i
+						class="bi bi-calendar-event"></i>
+						<span class="sb-nav__label">인사 평가</span>
+					</a>
+					<a class="sb-nav__item" data-page="evallist" data-tip="평가 작성"
+						th:if="${isAdmin}" th:href="@{/eval/list}">
+						<i class="bi bi-star"></i>
+						<span class="sb-nav__label">평가 작성</span>
+					</a>
+					<a class="sb-nav__item" data-page="evalreport" data-tip="내 평가 리포트"
+						th:href="@{/eval/report/my}">
+						<i class="bi bi-file-earmark-bar-graph"></i>
+						<span class="sb-nav__label">내 평가 리포트</span>
+					</a>
+					<!-- jsj -->
+
+
+					<div class="sb-nav__section">업무 관리</div>
+					<!-- KJY -->
+					<!-- 관리자 전용 양식 관리 -->
+					<a class="sb-nav__item" data-page="apprlistform" data-tip="전자결재"
+						th:href="@{/appr/list_form}" th:if="${isRoot}"> <i
+						class="bi bi-sliders"></i><span class="sb-nav__label">결재 양식
+							관리</span> <!-- <span class="sb-nav__badge">5</span> -->
+					</a>
+					<!-- 전자 결재 파트 / 관리자 파트도 따로 만들 예정 -->
+					<a class="sb-nav__item" data-page="apprlistdoc" data-tip="전자결재"
+						th:href="@{/appr/list_doc}"> <i class="bi bi-pencil-square	"></i><span
+						class="sb-nav__label">전자결재 기안</span> <!-- <span class="sb-nav__badge">5</span> -->
+					</a>
+					<!-- KJY -->
+					<!-- CDY -->
+					<a class="sb-nav__item" data-page="projects" data-tip="프로젝트"
+						th:href="@{/proj/proj_list}"> <i class="bi bi-kanban"></i> <span
+						class="sb-nav__label">프로젝트 및 태스크</span>
+					</a> <a class="sb-nav__item" data-page="tasks" data-tip="태스크"
+						th:href="@{/proj/task_list}"> <i class="bi bi-clipboard-check"></i>
+						<span class="sb-nav__label">내 태스크</span>
+					</a> <a class="sb-nav__item" data-page="notices" data-tip="공지 관리"
+						th:href="@{/notice/list}"> <i class="bi bi-megaphone"></i> <span
+						class="sb-nav__label">공지 관리</span>
+					</a>
+					<!-- CDY -->
+					<div class="sb-nav__section">자산 관리</div>
+					<!-- cyj -->
+					<a class="sb-nav__item" data-page="reslist" data-tip="자원 관리" th:href="@{/res/list?keyword=&resType=&resStatus=AVAILABLE}"> 
+						<i class="bi bi-collection"></i> 
+						<span class="sb-nav__label">자원 관리</span>
+					</a>
+					<a class="sb-nav__item" data-page="resvmy" data-tip="내 자원 요청 관리" th:href="@{/resv/my}"> 
+						<i class="bi bi-calendar2-check"></i> 
+						<span class="sb-nav__label">내 자원 요청 관리</span>
+					</a>
+					<a th:if="${isAdmin}" class="sb-nav__item" data-page="adminresvlist"
+						data-tip="전체 자원 요청 관리" th:href="@{/admin/resv/list(status=WAI)}">
+						<i class="bi bi-calendar2-event"></i> 
+						<span class="sb-nav__label">자원 예약 요청 관리</span>
+					</a>
+					<!-- cyj -->
+				</nav>
+				<div class="sb-sidebar__foot" sec:authorize="isAuthenticated()"
+					th:with="empName=${#authentication.principal.user.empName},
+                   posName=${#authentication.principal.user.posName}">
+					<div class="sb-userchip" data-bs-toggle="dropdown">
+						<div class="sb-avatar"
+							th:text="${#strings.substring(empName, 0, 1)}">S</div>
+						<div class="sb-userchip__meta">
+							<b th:text="${empName}">사원명</b> <span th:text="${posName}">직급</span>
+						</div>
+						<i class="bi bi-chevron-expand ms-auto sb-nav__label"
+							style="color: var(- -sb-ink-faint); font-size: 14px;"></i>
+					</div>
+				</div>
+			</th:block>
+</body>
+</html>

@@ -1,0 +1,26 @@
+<div class="modal-header">
+    <h5 class="modal-title" style="color:var(--sb-red)">
+        <i class="bi bi-shield-exclamation me-1"></i>회사 삭제
+    </h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+</div>
+<div class="modal-body">
+    <div class="del-modal-icon"><i class="bi bi-building-x"></i></div>
+    <div class="del-company-name" th:text="${com.comName}"></div>
+    <div class="del-warning">계속하려면 <b>관리자 비밀번호</b>를 입력하세요.</div>
+    <div class="mb-2">
+        <label class="sb-form-label" for="empPass">관리자 비밀번호 <span style="color:var(--sb-red)">*</span></label>
+        <input type="password" class="form-control" id="empPass" name="empPass" placeholder="비밀번호 입력" autocomplete="new-password">
+        <div id="delPwErr" style="display:none;color:var(--sb-red);font-size:12.5px;margin-top:6px">
+            <i class="bi bi-exclamation-circle-fill me-1"></i><span id="delPwErrMsg">비밀번호가 올바르지 않습니다.</span>
+        </div>
+    </div>
+    <input type="hidden" id="comId" th:value="${com.comId}">
+    <input type="hidden" id="csrfToken" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+</div>
+<div class="modal-footer">
+    <button class="btn btn-ghost" data-bs-dismiss="modal">취소</button>
+    <button class="btn btn-sb" id="delYes" style="background:var(--sb-red);border-color:var(--sb-red)">
+        <i class="bi bi-trash3"></i> 삭제 확인
+    </button>
+</div>

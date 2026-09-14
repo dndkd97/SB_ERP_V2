@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{fragments/layout}">
+<head>
+    <title th:text="${dept != null} ? (${dept.deptName} + ' · 수정') : '부서 수정'">부서 수정</title>
+</head>
+<body>
+<main layout:fragment="content" class="sb-content"
+      th:with="backUrl=@{/dept/list(comId=${param.comId != null ? param.comId[0] : null})}">
+
+<div th:if="${not #strings.isEmpty(errorMsg)}" class="position-fixed bottom-0 end-0 p-3" style="z-index:1100">
+    <div class="toast align-items-center text-bg-danger border-0 show" role="alert">
+        <div class="d-flex">
+            <div class="toast-body"><i class="bi bi-exclamation-triangle-fill me-1"></i><span th:text="${errorMsg}"></span></div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+</div>
+
+<!-- 부서가 존재하지 않는 경우 -->
+<div th:if="${dept == null}">
+    <div class="sb-page-head">
+        <div class="sb-page-head__txt">
+            <div class="sb-breadcrumb">
+                <a th:href="@{/index}">홈</a>
+                <i class="bi bi-chevron-right"></i>
+                <a th:href="@{/dept/list}">부서 관리</a>
+                <i class="bi bi-chevron-right"></i>
+                수정
+            </div>
+            <h1>부서 수정</h1>
+        </div>
+    </div>
+    <div class="sb-card">
+        <div class="sb-empty">
+            <i class="bi bi-exclamation-circle"></i>
+            <p>해당 부서를 찾을 수 없습니다.</p>
+            <a th:href="@{/dept/list}" class="btn btn-sb-soft btn-sm mt-2">목록으로 돌아가기</a>
+        </div>
+    </div>
+</div>
+
+<th:block th:if="${dept != null}">
+
+<!-- 페이지 헤더 -->
+<div class="sb-page-head">
+    <div class="sb-page-head__txt">
+        <div class="sb-breadcrumb">
+            <a th:href="@{/index}">홈</a>
+            <i class="bi bi-chevron-right"></i>
+            <a th:href="${backUrl}">부서 관리</a>
+            <i class="bi bi-chevron-right"></i>
+            수정
+            <span class="admin-tag ms-2">관리자</span>
+        </div>
+        <h1 th:text="${dept.deptName} + ' · 수정'"></h1>
+        <p>DEPT-<span th:text="${#numbers.formatInteger(dept.deptId, 3)}"></span> · 부서 정보를 수정합니다.</p>
+    </div>
+    <div class="sb-page-head__actions">
+        <a th:href="${backUrl}" class="btn btn-ghost btn-sm">
+            <i class="bi bi-arrow-left"></i> 목록으로
+        </a>
+    </div>
+</div>
+
+<form id="deptForm" class="form-wide" novalidate method="post"
+      th:action="@{/dept/edit}">
+    <input type="hidden" name="deptId" th:value="${dept.deptId}"/>
+    <input type="hidden" name="comId"  th:value="${com.comId}"/>
+    <input th:if="${param.returnUrl != null}" type="hidden" name="returnUrl" th:value="${param.returnUrl[0]}"/>
+
+    <!-- ① 기본 정보 -->
+    <div class="sb-card mb-3">
+        <div class="sb-card__head">
+            <h2><i class="bi bi-diagram-3 me-2 text-soft"></i>기본 정보</h2>
+            <div class="right">
+                <span class="sb-badge sb-badge--gray">DEPT-<span th:text="${#numbers.formatInteger(dept.deptId, 3)}"></span></span>
+            </div>
+        </div>
+        <div class="sb-card__body">
+            <div class="row g-3">
+                <!-- dept_name -->
+                <div class="col-md-8">
+                    <label class="sb-form-label">
+                        부서명 <span style="color:var(--sb-red)">*</span>
+                    </label>
+                    <input type="text" class="form-control" id="fName" name="deptName" maxlength="100"
+                           th:value="${dept.deptName}" oninput="sbUpdatePreview()" required>
+                    <div class="invalid-feedback" id="eName">부서명을 입력하세요.</div>
+                </div>
+                <!-- dept_code -->
+                <div class="col-md-4">
+                    <label class="sb-form-label">
+                        부서코드 <span style="color:var(--sb-red)">*</span>
+                    </label>
+                    <input type="text" class="form-control" id="fCode" name="deptCode" maxlength="45"
+                           th:value="${dept.deptCode}" style="text-transform:uppercase"
+                           oninput="this.value=this.value.toUpperCase()" onblur="sbCheckDeptCode()" required>
+                    <div class="invalid-feedback" id="eCode">부서코드를 입력하세요.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ② 소속 및 계층 -->
+    <div class="sb-card mb-3">
+        <div class="sb-card__head">
+            <h2><i class="bi bi-sitemap me-2 text-soft"></i>소속 및 계층</h2>
+        </div>
+        <div class="sb-card__body">
+            <div class="row g-3">
+
+                <!-- com_id (읽기전용) -->
+                <div class="col-md-6">
+                    <label class="sb-form-label">
+                        소속 회사
+                    </label>
+                    <input class="form-control" readonly th:value="${com.comName}"
+                           style="background:#fafbfc;color:var(--sb-ink-soft)">
+                    <div class="text-faint mt-1" style="font-size:12px">소속 회사는 변경할 수 없습니다.</div>
+                </div>
+
+                <!-- parent_id -->
+                <div class="col-md-6">
+                    <label class="sb-form-label">
+                        상위 부서
+                    </label>
+                    <select class="form-select" id="fParent" name="parentId" onchange="sbRefreshDepth()">
+                        <option value="0" th:selected="${dept.parentId == null or dept.parentId == 0}">
+                            없음 (최상위 본부)
+                        </option>
+                        <option th:each="d : ${deptList}"
+                                th:if="${d.deptId != dept.deptId}"
+                                th:value="${d.deptId}"
+                                th:attr="data-depth=${d.depth}, data-parentid=${d.parentId}"
+                                th:selected="${d.deptId == dept.parentId}">
+                            <th:block th:if="${d.depth > 0}">
+                                <th:block th:each="i : ${#numbers.sequence(1, d.depth)}">&#160;&#160;&#160;</th:block>
+                                └&#160;
+                            </th:block>
+                            <th:block th:text="${d.deptName} + ' (' + ${d.deptCode} + ')'"></th:block>
+                        </option>
+                    </select>
+                    <div class="text-faint mt-1" style="font-size:12px">
+                        <i class="bi bi-info-circle me-1"></i>
+                        자기 자신/하위 부서는 선택할 수 없습니다. 변경 시 하위 부서의 depth가 함께 갱신됩니다.
+                    </div>
+                </div>
+
+                <!-- depth (자동계산) -->
+                <div class="col-md-4">
+                    <label class="sb-form-label">
+                        계층 깊이
+                    </label>
+                    <div class="depth-info-box">
+                        <i class="bi bi-layers text-faint"></i>
+                        <span>depth</span>
+                        <span class="depth-val" id="fDepthVal" th:text="${dept.depth}"></span>
+                        <span class="text-faint" id="fDepthLabel"></span>
+                    </div>
+                    <input type="hidden" name="depth" id="fDepth" th:value="${dept.depth}">
+                </div>
+
+                <!-- sort_order -->
+                <div class="col-md-4">
+                    <label class="sb-form-label">
+                        정렬 순서
+                    </label>
+                    <input type="number" class="form-control" id="fSort" name="sortOrder"
+                           th:value="${dept.sortOrder != null ? dept.sortOrder : 1}" min="1" max="999">
+                </div>
+
+                <!-- 계층 미리보기 -->
+                <div class="col-12">
+                    <label class="sb-form-label">계층 미리보기</label>
+                    <div class="hier-preview" id="hierPreview"></div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- ③ 부서장 -->
+    <div class="sb-card mb-3">
+        <div class="sb-card__head">
+            <h2><i class="bi bi-person-badge me-2 text-soft"></i>부서장</h2>
+            <span class="sub">선택 사항</span>
+        </div>
+        <div class="sb-card__body">
+            <div class="row g-3 align-items-center">
+                <div class="col-md-6">
+                    <label class="sb-form-label">부서장 사원 선택</label>
+                    <!-- 원본 그대로 deptEmpList(이 부서 소속 사원) 중에서 부서장을 고르는 구조 유지 -->
+                    <select class="form-select" id="fEmp" name="empId" onchange="sbRefreshLeadChip()">
+                        <option value="">지정 안 함</option>
+                        <option th:each="emp : ${deptEmpList}"
+                                th:value="${emp.empId}"
+                                th:attr="data-name=${emp.empName}, data-pos=${emp.posName}"
+        						th:selected="${emp.empId != null and dept.leaderId != null and #strings.toString(emp.empId) == #strings.toString(dept.leaderId)}"
+                                th:text="${emp.empName} + ' (' + ${emp.posName} + ')'"></option>
+                    </select>
+                </div>
+                <div class="col-md-6" id="leadChipWrap" style="display:none">
+                    <label class="sb-form-label">&nbsp;</label>
+                    <div>
+                        <span class="lead-chip" id="leadChip">
+                            <span class="sb-avatar" id="leadAvatar">?</span>
+                            <span id="leadName">—</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 소속 사원 현황 (읽기전용) -->
+    <div class="sb-card mb-3">
+        <div class="sb-card__head">
+            <h2><i class="bi bi-people me-2 text-soft"></i>소속 사원 현황</h2>
+            <span class="sub">총 <span th:text="${#lists.size(deptEmpList)}"></span>명</span>
+        </div>
+        <div class="sb-card__body--flush">
+            <table class="sb-table" id="empTable" th:style="${#lists.isEmpty(deptEmpList)} ? 'display:none' : ''">
+                <thead>
+                    <tr>
+                        <th style="width:80px">사번</th>
+                        <th>이름</th>
+                        <th style="width:100px">직급</th>
+                        <th style="width:160px">이메일</th>
+                        <th style="width:90px">상태</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="e : ${deptEmpList}">
+                        <td class="sb-hr-cell tnum" th:text="${e.empNo}"></td>
+                        <td>
+                            <div class="sb-rowuser">
+                                <span class="sb-avatar" style="width:28px;height:28px;font-size:12px"
+                                      th:text="${#strings.substring(e.empName, 0, 1)}"></span>
+                                <span class="sb-table__name" th:text="${e.empName}"></span>
+                            </div>
+                        </td>
+                        <td><span class="sb-badge sb-badge--gray" style="font-size:11.5px" th:text="${e.posName}"></span></td>
+                        <td class="sb-hr-cell" style="font-size:12.5px" th:text="${e.empEmail}"></td>
+                        <td>
+                            <span th:switch="${e.empStatus}">
+                                <span th:case="'재직'" class="sb-badge sb-badge--green">재직</span>
+                                <span th:case="'휴직'" class="sb-badge sb-badge--amber">휴직</span>
+                                <span th:case="'퇴직'" class="sb-badge sb-badge--cyan">퇴직</span>
+                                <span th:case="*" class="sb-badge sb-badge--gray" th:text="${e.empStatus}"></span>
+                            </span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="sb-empty" id="empEmpty" th:style="${#lists.isEmpty(deptEmpList)} ? '' : 'display:none'">
+                <i class="bi bi-people"></i>
+                <p>소속 사원이 없습니다.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 저장 버튼 -->
+    <div class="d-flex gap-2 justify-content-end">
+        <a th:href="${backUrl}" class="btn btn-ghost">취소</a>
+        <button type="submit" class="btn btn-sb">
+            <i class="bi bi-check-lg"></i> 변경사항 저장
+        </button>
+    </div>
+
+</form>
+<!-- 삭제용 숨김 폼 + 확인 모달 (dept.css .del-modal-icon 등 재사용) -->
+<form id="deleteForm" method="post" th:action="@{/dept/delete}">
+    <input type="hidden" name="deptId" th:value="${dept.deptId}">
+    <input type="hidden" name="comId"  th:value="${com.comId}">
+    <input th:if="${param.returnUrl != null}" type="hidden" name="returnUrl" th:value="${param.returnUrl[0]}">
+</form>
+
+<div class="modal fade" id="deptDelModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:380px">
+        <div class="modal-content">
+            <div class="modal-header" style="border-bottom:none">
+                <span class="fw-semibold" style="color:var(--sb-red)">
+                    <i class="bi bi-shield-exclamation me-1"></i>부서 삭제
+                </span>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body pt-0">
+                <div class="del-modal-icon"><i class="bi bi-diagram-3-fill"></i></div>
+                <div class="del-dept-name">
+                    <span th:text="${dept.deptName}"></span>
+                    <span class="dept-code-chip ms-1" th:text="${dept.deptCode}"></span>
+                </div>
+                <div class="del-warning">
+                    삭제 시 연결된 데이터에 영향을 줄 수 있습니다.<br>
+                    이 작업은 되돌릴 수 없습니다.
+                </div>
+                <div class="del-warn-box">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    <span>하위 부서가 있는 경우, <b>ON DELETE CASCADE</b> 설정에 따라 함께 삭제됩니다.</span>
+                </div>
+                <div th:if="${not #lists.isEmpty(deptEmpList)}" class="del-warn-box">
+                    <i class="bi bi-people-fill"></i>
+                    <span>소속 사원이 <b th:text="${#lists.size(deptEmpList)} + '명'"></b> 있습니다. 다른 부서로 이동 후 삭제해주세요.</span>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top:none">
+                <button class="btn btn-ghost" data-bs-dismiss="modal">취소</button>
+                <button type="button" class="btn btn-sb" id="delYes"
+                        style="background:var(--sb-red);border-color:var(--sb-red)"
+                        onclick="document.getElementById('deleteForm').submit()">
+                    <i class="bi bi-trash3"></i> 삭제 확인
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<script th:inline="javascript">
+(function () {
+  "use strict";
+  var DEPTH_LABELS = ["", "본부", "팀", "셀", "파트"];
+  var COM_NAME = /*[[${com.comName}]]*/ "";
+
+  /* ── depth 자동계산 ── */
+  window.sbRefreshDepth = function () {
+    var sel = document.getElementById("fParent");
+    var opt = sel.options[sel.selectedIndex];
+    var parentDepth = +(opt && opt.dataset.depth) || 0;
+    var depth = (!sel.value || sel.value === "0") ? 1 : parentDepth + 1;
+    document.getElementById("fDepthVal").textContent   = depth;
+    document.getElementById("fDepthLabel").textContent = "· " + (DEPTH_LABELS[depth] || "하위");
+    document.getElementById("fDepth").value = depth;
+    sbUpdatePreview();
+  };
+
+  /* ── 계층 미리보기 ── */
+  window.sbUpdatePreview = function () {
+    var sel  = document.getElementById("fParent");
+    var name = document.getElementById("fName").value.trim();
+    var box  = document.getElementById("hierPreview");
+    if (!box) return;
+
+    var chain = [];
+    var curId = sel.value;
+    var guard = 0;
+    while (curId !== "" && curId !== "0" && guard < 20) {
+      var opt = sel.querySelector('option[value="' + curId + '"]');
+      if (!opt) break;
+      chain.unshift(opt.textContent.replace(/^[\s└]+/, "").trim());
+      curId = opt.dataset.parentid;
+      guard++;
+    }
+
+    var nodes = [COM_NAME].concat(chain);
+    var html = nodes.map(function (n) { return '<span class="hier-node">' + n + '</span>'; })
+      .join('<i class="bi bi-chevron-right hier-sep"></i>');
+
+    html += '<i class="bi bi-chevron-right hier-sep"></i>';
+    html += name
+      ? '<span class="hier-node hier-node--new">' + name + '</span>'
+      : '<span class="text-faint" style="font-size:12.5px">부서명 입력 중…</span>';
+
+    box.innerHTML = html;
+  };
+
+  /* ── 부서장 칩 ── */
+  window.sbRefreshLeadChip = function () {
+    var sel  = document.getElementById("fEmp");
+    var wrap = document.getElementById("leadChipWrap");
+    if (!sel) return;
+    var opt = sel.options[sel.selectedIndex];
+    if (!sel.value || !opt.dataset.name) { wrap.style.display = "none"; return; }
+    document.getElementById("leadAvatar").textContent = opt.dataset.name.charAt(0);
+    document.getElementById("leadName").textContent   = opt.dataset.name + " · " + opt.dataset.pos;
+    wrap.style.display = "";
+  };
+
+  /* ── 부서코드 중복 체크 (자기 자신 제외) ── */
+  window.sbCheckDeptCode = function () {
+    var codeEl   = document.getElementById("fCode");
+    var origCode = /*[[${dept.deptCode}]]*/ "";
+    var comId    = /*[[${com.comId}]]*/ "";
+    var deptId   = /*[[${dept.deptId}]]*/ "";
+    var code     = codeEl.value.trim();
+
+    if (code === origCode) { codeEl.classList.remove("is-invalid"); return; }
+    if (!code) return;
+
+    var CHECK_URL = /*[[@{/dept/checkCode}]]*/ "/dept/checkCode";
+
+    fetch(CHECK_URL
+          + "?comId=" + encodeURIComponent(comId)
+          + "&deptCode=" + encodeURIComponent(code)
+          + "&deptId=" + encodeURIComponent(deptId))
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (data.duplicate) {
+          codeEl.classList.add("is-invalid");
+          document.getElementById("eCode").textContent = "이미 사용 중인 부서코드입니다.";
+        } else {
+          codeEl.classList.remove("is-invalid");
+        }
+      })
+      .catch(function () { console.error("부서코드 중복 체크 오류"); });
+  };
+
+  if (document.getElementById("fParent")) {
+    sbRefreshDepth();
+    sbRefreshLeadChip();
+  }
+
+  var form = document.getElementById("deptForm");
+  if (form) {
+    form.addEventListener("submit", function (e) {
+      var valid = true;
+      var nameEl = document.getElementById("fName");
+      var codeEl = document.getElementById("fCode");
+      nameEl.classList.remove("is-invalid");
+      if (!nameEl.value.trim()) { nameEl.classList.add("is-invalid"); valid = false; }
+      if (!codeEl.value.trim()) {
+        codeEl.classList.add("is-invalid");
+        document.getElementById("eCode").textContent = "부서코드를 입력하세요.";
+        valid = false;
+      }
+      if (codeEl.classList.contains("is-invalid")) valid = false;
+      if (!valid) e.preventDefault();
+    });
+  }
+})();
+</script>
+</th:block>
+</main>
+</body>
+</html>

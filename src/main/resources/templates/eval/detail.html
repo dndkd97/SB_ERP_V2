@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{fragments/layout}">
+<head>
+    <title>평가 상세</title>
+</head>
+<body>
+<section class="eval_detail sb-content" layout:fragment="content">
+
+    <!-- 페이지 헤더 -->
+    <div class="sb-page-head">
+        <div class="sb-page-head__txt">
+            <div class="sb-breadcrumb">
+                <a th:href="@{/}">홈</a>
+                <i class="bi bi-chevron-right"></i>
+                <a th:href="@{/eval/list(periodId=${eval.periodId})}">평가 작성</a>
+                <i class="bi bi-chevron-right"></i>
+                평가 상세
+            </div>
+            <h1>
+                <span th:text="${eval.targetEmpName}">홍길동</span>
+                평가
+            </h1>
+            <p>
+                <span th:text="${eval.periodTitle}">2026년 상반기</span>
+                ·
+                <span th:text="${eval.targetDeptName}">개발팀</span>
+                <span th:text="${eval.targetPosName}">대리</span>
+            </p>
+        </div>
+        <div class="sb-page-head__actions">
+            <a th:href="@{/eval/list(periodId=${eval.periodId})}"
+               class="btn btn-ghost btn-sm">
+                <i class="bi bi-arrow-left"></i>
+                대상 목록으로
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <!-- 좌: 점수 -->
+        <div class="col-12 col-lg-8">
+            <div class="sb-card mb-3">
+                <div class="sb-card__head">
+                    <h2>
+                        <i class="bi bi-star me-2 text-soft"></i>
+                        정량 평가
+                    </h2>
+                    <div th:if="${eval.weightedScore != null}"
+                         class="d-flex align-items-center gap-2">
+                        <span class="text-faint" style="font-size:13px">종합</span>
+                        <span style="font-size:18px;font-weight:700"
+                              th:text="${#numbers.formatDecimal(eval.weightedScore, 1, 2)}">4.20</span>
+                    </div>
+                </div>
+                <div class="sb-card__body">
+                    <div th:each="row : ${ {
+                            {'성과', eval.scorePerformance, '40%'},
+                            {'전문성', eval.scoreExpertise, '20%'},
+                            {'협업', eval.scoreTeamwork, '20%'},
+                            {'태도', eval.scoreAttitude, '10%'},
+                            {'성장', eval.scoreGrowth, '10%'}
+                        } }" class="d-flex align-items-center gap-3 mb-2">
+                        <div style="width:80px;font-weight:600" th:text="${row[0]}">성과</div>
+                        <div class="text-faint" style="width:50px;font-size:12px" th:text="${row[2]}">40%</div>
+                        <div class="flex-grow-1">
+                            <span th:if="${row[1] == null}" class="text-faint">-</span>
+                            <span th:if="${row[1] != null}" th:text="${row[1]} + ' / 5'"
+                                  style="font-size:15px;font-weight:600">4 / 5</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 강점 -->
+            <div class="sb-card mb-3">
+                <div class="sb-card__head">
+                    <h2>
+                        <i class="bi bi-chat-square-quote me-2 text-soft"></i>
+                        강점
+                    </h2>
+                </div>
+                <div class="sb-card__body">
+                    <div th:if="${eval.strengthComment}" style="white-space:pre-wrap"
+                         th:text="${eval.strengthComment}">강점 서술</div>
+                    <div th:unless="${eval.strengthComment}" class="text-faint">작성 없음</div>
+                </div>
+            </div>
+
+            <!-- 개선점 -->
+            <div class="sb-card mb-3">
+                <div class="sb-card__head">
+                    <h2>
+                        <i class="bi bi-chat-square-dots me-2 text-soft"></i>
+                        개선점
+                    </h2>
+                </div>
+                <div class="sb-card__body">
+                    <div th:if="${eval.improvementComment}" style="white-space:pre-wrap"
+                         th:text="${eval.improvementComment}">개선점 서술</div>
+                    <div th:unless="${eval.improvementComment}" class="text-faint">작성 없음</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 우: 메타 정보 -->
+        <div class="col-12 col-lg-4">
+            <div class="sb-card">
+                <div class="sb-card__body">
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <div class="sb-avatar" style="width:56px;height:56px;font-size:22px"
+                             th:text="${#strings.substring(eval.targetEmpName, 0, 1)}">홍</div>
+                        <div>
+                            <div style="font-size:17px;font-weight:650" th:text="${eval.targetEmpName}">홍길동</div>
+                            <div class="text-faint" style="font-size:13px" th:text="${eval.targetEmpNo}">EMP-001</div>
+                        </div>
+                    </div>
+
+                    <div class="mb-2">
+                        <div class="text-faint" style="font-size:12px">회차</div>
+                        <div th:text="${eval.periodTitle}">2026년 상반기</div>
+                    </div>
+                    <div class="mb-2">
+                        <div class="text-faint" style="font-size:12px">상태</div>
+                        <div>
+                            <span th:if="${eval.evalStatus == 'DRAFT'}" class="sb-badge sb-badge--amber">
+                                <span class="pip"></span>임시저장
+                            </span>
+                            <span th:if="${eval.evalStatus == 'SUBMITTED'}" class="sb-badge sb-badge--green">
+                                <span class="pip"></span>제출완료
+                            </span>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <div class="text-faint" style="font-size:12px">작성일</div>
+                        <div class="tnum" th:text="${eval.createdAt}">2026-01-01</div>
+                    </div>
+                    <div>
+                        <div class="text-faint" style="font-size:12px">최종 수정</div>
+                        <div class="tnum" th:text="${eval.updatedAt}">2026-01-01</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</section>
+</body>
+</html>

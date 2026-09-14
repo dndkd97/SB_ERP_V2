@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{fragments/layout}">
+<head>
+	<title>사원 부서 이관</title>
+</head>
+<body>
+<main layout:fragment="content" class="sb-content">
+<!-- 실패 메시지 (execute 실패 시 flash attribute) -->
+<div class="sb-empty" th:if="${errorMessage != null}"
+     style="background:var(--sb-red-soft); color:var(--sb-red); border-radius:8px; padding:12px 16px; margin-bottom:16px; text-align:left">
+    <i class="bi bi-x-circle-fill"></i>
+    <span th:text="${errorMessage}"></span>
+</div>
+
+<!-- 상단 안내 배너 -->
+<div class="sb-card" style="margin-bottom:16px">
+    <div class="my-dept-banner"
+         style="background:var(--sb-amber-soft); border-color:var(--sb-amber); color:var(--sb-amber)">
+        <i class="bi bi-exclamation-diamond-fill"></i>
+        <span>
+            <b th:text="${impact.deptName}"></b>
+            <span class="dept-code-chip" th:text="${impact.deptCode}"></span>
+            부서는 현재 <b>이관 대기(PENDING_DELETE)</b> 상태입니다. 아래 소속 사원을 모두 다른 부서로
+            이관해야 부서 삭제가 최종 완료됩니다.
+        </span>
+    </div>
+</div>
+
+<!-- AI(OpenAI) 추천 카드 -->
+<div class="sb-card" style="margin-bottom:16px; border-left:4px solid var(--sb-accent)"
+     th:if="${impact.aiRecom != null}">
+    <div style="padding:14px 18px; display:flex; gap:12px; align-items:flex-start">
+        <i class="bi bi-stars" style="font-size:20px; color:var(--sb-accent)"></i>
+        <div style="flex:1">
+            <div class="fw-semibold" style="margin-bottom:4px">
+                🤖 AI 추천 부서: <span th:text="${impact.aiRecom.targetDeptName}"></span>
+            </div>
+            <div style="font-size:13px; color:var(--sb-ink-soft)" th:text="${impact.aiRecom.reason}"></div>
+            <button type="button" class="btn btn-ghost btn-sm" id="applyAiBtn" style="margin-top:8px">
+                <i class="bi bi-magic"></i> 이 추천을 전체 사원에 적용
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 영향도 요약 -->
+<div class="sb-card" style="margin-bottom:16px">
+    <div style="display:flex; gap:14px; flex-wrap:wrap; padding:16px">
+        <div class="depth-info-box">
+            <i class="bi bi-people-fill" style="color:var(--sb-accent)"></i>
+            소속 사원 <span class="depth-val" th:text="${impact.employeeCount}"></span>명
+        </div>
+        <div class="depth-info-box">
+            <i class="bi bi-calendar2-week" style="color:var(--sb-cyan)"></i>
+            미처리 예약 <span class="depth-val" th:text="${impact.reservationCount}"></span>건
+        </div>
+        <div class="depth-info-box">
+            <i class="bi bi-signpost-split" style="color:var(--sb-violet)"></i>
+            결재 대기(라인) <span class="depth-val" th:text="${impact.apprLineCount}"></span>건
+        </div>
+        <div class="depth-info-box">
+            <i class="bi bi-file-earmark-text" style="color:var(--sb-green)"></i>
+            상신 진행중 <span class="depth-val" th:text="${impact.apprDocCount}"></span>건
+        </div>
+    </div>
+    <div class="px-3 pb-3" style="font-size:12px; color:var(--sb-ink-faint)">
+        <i class="bi bi-info-circle"></i>
+        예약·결재 항목은 <code style="font-size:11px">emp_id</code> 기준으로 사원을 따라가는 구조라
+        별도 이관 작업 없이 사원의 소속 부서만 변경하면 자동으로 함께 이동합니다. 아래 목록은 참고용입니다.
+    </div>
+</div>
+
+<!-- 이관 폼 -->
+<form id="transferForm" method="post" th:action="@{/dept/transfer/execute}">
+    <input type="hidden" name="deptId" th:value="${impact.deptId}">
+    <!-- comId는 더 이상 화면에서 넘기지 않습니다. 서버(DeptTransferController)가
+         Authentication 의 로그인 회사 정보로 강제 치환하므로, 여기서 보내도 무시됩니다. -->
+    <input type="hidden" name="aiReason" th:value="${impact.aiRecom != null ? impact.aiRecom.reason : ''}">
+    <input type="hidden" name="snapshotText" th:value="${impact.snapshotText}">
+    <input type="hidden" id="aiRecommendedDeptId"
+           th:value="${impact.aiRecom != null ? impact.aiRecom.targetDeptId : ''}">
+    <div id="hiddenItems"></div>
+
+    <div class="sb-card">
+        <div class="sb-toolbar">
+            <span class="fw-semibold">소속 사원 이관</span>
+            <div class="grow"></div>
+            <div class="sb-field" style="min-width:220px">
+                <select id="bulkTargetSelect">
+                    <option value="">일괄 적용할 부서 선택</option>
+                    <option th:each="opt : ${impact.candidates}" th:value="${opt.deptId}" th:text="${opt.deptName}"></option>
+                </select>
+            </div>
+            <button type="button" class="btn btn-ghost btn-sm" id="applyBulkBtn">전체 적용</button>
+        </div>
+
+        <div class="sb-card__body--flush">
+            <table class="sb-table" id="empTable" th:if="${impact.employeeCount > 0}">
+                <thead>
+                    <tr>
+                        <th style="width:60px">NO</th>
+                        <th style="width:120px">사번</th>
+                        <th style="min-width:120px">이름</th>
+                        <th style="width:120px">직급</th>
+                        <th style="min-width:220px">이관할 부서</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="emp, i : ${impact.employees}" th:attr="data-empid=${emp.empId}">
+                        <td class="tnum" th:text="${i.index + 1}"></td>
+                        <td><span class="dept-code-chip" th:text="${emp.empNo}"></span></td>
+                        <td th:text="${emp.empName}"></td>
+                        <td th:text="${emp.posName}"></td>
+                        <td>
+                            <select class="emp-target-select" style="width:100%">
+                                <option value="">이관할 부서 선택</option>
+                                <option th:each="opt : ${impact.candidates}" th:value="${opt.deptId}" th:text="${opt.deptName}"></option>
+                            </select>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="sb-empty" th:if="${impact.employeeCount == 0}">
+                <i class="bi bi-people"></i>
+                <p>소속 사원이 없습니다. 바로 삭제를 완료할 수 있습니다.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-end gap-2" style="margin-top:16px">
+        <button type="button" class="btn btn-ghost" id="cancelTransferBtn">이관 취소 (부서 원복)</button>
+        <button type="submit" class="btn btn-sb" id="submitTransferBtn"
+                th:disabled="${impact.employeeCount > 0}">
+            <i class="bi bi-check2-circle"></i> 이관 완료
+        </button>
+    </div>
+</form>
+
+<!-- 이관 취소용 숨김 폼 -->
+<form id="cancelForm" method="post" th:action="@{/dept/transfer/cancel}">
+    <input type="hidden" name="deptId" th:value="${impact.deptId}">
+</form>
+
+<!-- 참고용 상세 : 미처리 예약 -->
+<div class="sb-card" style="margin-top:16px" th:if="${impact.reservationCount > 0}">
+    <div class="sb-toolbar"><span class="fw-semibold">미처리 예약 (참고용)</span></div>
+    <div class="sb-card__body--flush">
+        <table class="sb-table">
+            <thead><tr><th>사원</th><th>자원</th><th>상태</th><th>장비예약시작일</th><th>장비예약종료일</th></tr></thead>
+            <tbody>
+                <tr th:each="r : ${impact.reservations}">
+                    <td th:text="${r.empName}"></td>
+                    <td th:text="${r.resName}"></td>
+                    <td><span class="sb-badge sb-badge--amber" th:text="${r.status}"></span></td>
+                    <td th:text="${r.startDt}"></td>
+                    <td th:text="${r.endDt}"></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- 참고용 상세 : 결재 대기 라인 -->
+<div class="sb-card" style="margin-top:16px" th:if="${impact.apprLineCount > 0}">
+    <div class="sb-toolbar"><span class="fw-semibold">결재 대기 라인 (참고용)</span></div>
+    <div class="sb-card__body--flush">
+        <table class="sb-table">
+            <thead><tr><th>사원</th><th>문서명</th><th>결재순서</th><th>상태</th></tr></thead>
+            <tbody>
+                <tr th:each="l : ${impact.apprLines}">
+                    <td th:text="${l.empName}"></td>
+                    <td th:text="${l.docTitle}"></td>
+                    <td th:text="${l.linOrder}"></td>
+                    <td><span class="sb-badge sb-badge--violet" th:text="${l.linStatus}"></span></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- 참고용 상세 : 기안 진행중 결재문서 (선택 항목) -->
+<div class="sb-card" style="margin-top:16px" th:if="${impact.apprDocCount > 0}">
+    <div class="sb-toolbar"><span class="fw-semibold">상신 진행중 결재문서 (참고용)</span></div>
+    <div class="sb-card__body--flush">
+        <table class="sb-table">
+            <thead><tr><th>사원</th><th>문서명</th><th>상태</th></tr></thead>
+            <tbody>
+                <tr th:each="d : ${impact.apprDocs}">
+                    <td th:text="${d.empName}"></td>
+                    <td th:text="${d.docTitle}"></td>
+                    <td><span class="sb-badge sb-badge--green" th:text="${d.docStatus}"></span></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script th:inline="none">
+(function () {
+  "use strict";
+
+  var rows = Array.prototype.slice.call(document.querySelectorAll("#empTable tbody tr"));
+  var submitBtn = document.getElementById("submitTransferBtn");
+  var aiRecommendedDeptId = document.getElementById("aiRecommendedDeptId").value;
+
+  function checkAllFilled() {
+    if (rows.length === 0) { submitBtn.disabled = false; return; }
+    var allFilled = rows.every(function (tr) {
+      var sel = tr.querySelector(".emp-target-select");
+      return sel && sel.value;
+    });
+    submitBtn.disabled = !allFilled;
+  }
+
+  function applyDeptToAllRows(deptId) {
+    if (!deptId) return;
+    rows.forEach(function (tr) {
+      var sel = tr.querySelector(".emp-target-select");
+      if (sel) sel.value = deptId;
+    });
+    checkAllFilled();
+  }
+
+  rows.forEach(function (tr) {
+    var sel = tr.querySelector(".emp-target-select");
+    if (sel) sel.addEventListener("change", checkAllFilled);
+  });
+  checkAllFilled();
+
+  var bulkBtn = document.getElementById("applyBulkBtn");
+  if (bulkBtn) {
+    bulkBtn.addEventListener("click", function () {
+      applyDeptToAllRows(document.getElementById("bulkTargetSelect").value);
+    });
+  }
+
+  var applyAiBtn = document.getElementById("applyAiBtn");
+  if (applyAiBtn) {
+    applyAiBtn.addEventListener("click", function () {
+      document.getElementById("bulkTargetSelect").value = aiRecommendedDeptId;
+      applyDeptToAllRows(aiRecommendedDeptId);
+    });
+  }
+
+  var cancelBtn = document.getElementById("cancelTransferBtn");
+  if (cancelBtn) {
+    cancelBtn.addEventListener("click", function () {
+      if (confirm("이관을 취소하고 부서를 원래 상태(ACTIVE)로 되돌리시겠습니까?")) {
+        document.getElementById("cancelForm").submit();
+      }
+    });
+  }
+
+  var form = document.getElementById("transferForm");
+  form.addEventListener("submit", function () {
+    var hiddenWrap = document.getElementById("hiddenItems");
+    hiddenWrap.innerHTML = "";
+    rows.forEach(function (tr, idx) {
+      var empId = tr.dataset.empid;
+      var sel = tr.querySelector(".emp-target-select");
+      var newDeptId = sel ? sel.value : "";
+      if (!newDeptId) return;
+
+      // AI 추천 deptId와 최종 선택값이 같으면 "Y" — dept_transfer_log.ai_recommended 감사 기록용
+      var aiRecommended = (aiRecommendedDeptId && newDeptId === aiRecommendedDeptId) ? "Y" : "N";
+
+      appendHidden(hiddenWrap, "items[" + idx + "].empId", empId);
+      appendHidden(hiddenWrap, "items[" + idx + "].newDeptId", newDeptId);
+      appendHidden(hiddenWrap, "items[" + idx + "].aiRecommended", aiRecommended);
+    });
+  });
+
+  function appendHidden(wrap, name, value) {
+    var input = document.createElement("input");
+    input.type = "hidden";
+    input.name = name;
+    input.value = value;
+    wrap.appendChild(input);
+  }
+})();
+</script>
+
+</main>
+</body>
+</html>

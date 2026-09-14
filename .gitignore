@@ -1,0 +1,57 @@
+HELP.md
+target/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+### Spring Boot ###
+*.pid
+
+### OS / 에디터 ###
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+### 로그 ###
+*.log
+logs/
+
+### 업로드 파일 (로컬 디스크 저장 구조라면) ###
+src/main/resources/static/uploads/*
+!src/main/resources/static/uploads/.gitkeep
+
+### 기타 ###
+dependency-reduced-pom.xml
+*.hprof
+
+# 
+src/main/resources/application-oauth.properties

@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{fragments/layout.html}">
+<head>
+	<title>결재 양식 관리</title>
+</head>
+<body data-page="apprlistform">
+
+<main layout:fragment="content">
+
+<!-- 토스트 / 안내 문구 -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3"
+	 style="z-index: 1080;" id="toastContainer"></div>
+<div id="flashToastData"
+	 th:if="${toastMsg}"
+	 th:attr="data-type=${toastType} ?: 'info', data-msg=${toastMsg}"
+	 style="display: none;"></div>
+<script th:src="@{/js/appr-toast.js}"></script>
+
+<div class="sb-page-head">
+	<div class="sb-page-head__txt">
+		<div class="sb-breadcrumb">
+			<a th:href="@{/appr/list_form}">전자 결재</a>
+			<i class="bi bi-chevron-right"></i>
+			<span>양식 관리</span>
+		</div>
+		<h1>결재 양식 관리</h1>
+		<p>시스템 내 결재 양식을 조회하고 관리</p>
+	</div>
+	<div class="sb-page-head__actions">
+		<button type="button" class="btn btn-sb"
+				th:onclick="|location.href='@{/appr/write_form}'|">
+				<i class="bi bi-plus-lg"></i> 양식 등록
+		</button>
+	</div>
+</div>
+<!-- 검색 / 필터 툴바 (실제 GET 검색 폼) -->
+<div class="sb-card mb-4">
+	<div class="sb-card__body">
+		<form method="GET" th:action="@{/appr/list_form}" id="searchForm">
+			<div class="row g-3">	
+				<!--  검색 조건1 : 양식코드 또는 제목 -->		
+				<div class="col-md-4">
+					<label for="keyword" class="sb-form-label">키워드 검색</label>
+					<div class="sb-search">
+						<i class="bi bi-search"></i>
+						<input type="text" id="keyword" name="keyword"
+							   placeholder="양식 코드 또는 제목" th:value="${search.keyword}">
+					</div>
+				</div>
+				<!--  검색 조건2 : 회사명 또는 사업자 번호 검색 -->		
+				<div class="col-md-4 position-relative">
+					<label for="comName" class="sb-form-label">회사</label>
+					<div class="sb-search">
+						<i class="bi bi-building"></i>
+						<input type="text" id="comName" name="comName" th:value="${search.comName}"
+							   placeholder="회사명" autocomplete="off" />
+						<input type="hidden" id="comId" name="comId" th:value="${search.comId}"/>
+					</div>
+					<div class="ac-list" id="companyDropdown"></div>
+				</div>
+				
+				<div class="col-md-4">
+					<label for="forStatus" class="sb-form-label">활성화 여부</label>
+					<select class="form-select" id="forStatus" name="forStatus">
+						<option value="" th:selected="${search.forStatus == null}">전체</option>
+						<option value="true" th:selected="${search.forStatus == true}">활성화</option>
+						<option value="false" th:selected="${search.forStatus == false}">비활성화</option>
+					</select>
+				</div>
+				<div class="col-12 d-flex justify-content-between align-items-center mt-3">
+					<div id="search-error" class="text-danger small fw-bold"
+						 style="display : none;">
+						 <i class="bi bi-exclamation-circle-fill"></i> 키워드 또는 회사 중 하나는 입력해야 합니다.
+					</div>
+ 					<div class="ms-auto d-flex gap-2">
+	                    <button type="submit" class="btn btn-sb-soft btn-sm">
+							<i class="bi bi-search"></i> 검색
+						</button>					
+			            <a th:if="${search.keyword != null and !#strings.isEmpty(search.keyword)}"
+			               class="btn btn-ghost btn-sm"
+			               th:href="@{/appr/list_form}">초기화</a>
+	                </div>
+                </div>
+			</div>
+		</form>
+	</div>
+</div>
+
+<div class="sb-card">
+	<div class="sb-card_body sb-card__body--flush">
+		<div class="table-responsive">
+			<table class="sb-table">
+				<thead>
+					<tr>
+						<th class="num">번호</th>
+						<th>양식 코드</th>
+						<th>양식 제목</th>
+						<th>회사</th>
+						<th>사용 여부</th>
+						<th>생성일</th>
+						<th>수정일</th>
+						<th class="text-center">관리</th>
+					</tr>
+				</thead>
+				<tbody id="formTbody">
+				
+					<tr th:if="${#lists.isEmpty(list)}">
+						<td colspan="8">
+							<div class="sb-empty">
+								<i class="bi bi-inbox text-faint"></i>
+								<p>검색 결과가 없습니다.</p>
+							</div>
+						</td>
+					</tr>
+					
+					<tr th:unless="${#lists.isEmpty(list)}"
+						th:each="item, status : ${list}">
+						<td class="num text-faint"
+						    th:text="${paging.listtotal - ((paging.current -1) * paging.onepagelist) - status.index}">1</td>
+						<td class="fw-bold text-dark"
+						    th:text="${item.forCode}">양식 코드</td>
+						<td th:text="${item.forTitle}">양식 제목</td>
+						<td class="text-soft" th:text="${item.comName}">회사명</td>
+						<td>
+							<span class="sb-badge"
+								  th:classappend="${item.forStatus} ? 'sb-badge--green' : 'sb-badge--gray'">
+								<span class="pip"></span>
+								<span th:text="${item.forStatus} ? '활성화' : '비활성화'">상태</span>
+							</span>
+						</td>
+						<td class="text-faint tnum" th:text="${item.createdAt}">생성일</td>
+						<td class="text-faint tnum" th:text="${item.updatedAt}">수정일</td>
+						
+						<td>
+							<div class="d-flex justify-content-center gap-1">
+								<a th:href="@{/appr/detail_form(forId=${item.forId}, forVersion=${item.forVersion})}"
+								   class="btn btn-sb-soft btn-xs px-2 py-1" style="font-size: 11px;">
+								   <i class="bi bi-eye"></i> 상세보기
+								</a>
+								<a th:href="@{/appr/update_form(forId=${item.forId}, forVersion=${item.forVersion})}"
+								   class="btn btn-sb-soft btn-xs px-2 py-1" style="font-size: 11px;">
+								   <i class="bi bi-pencil-square"></i> 수정
+								</a>
+							</div>
+						</td>
+					</tr>
+					
+				</tbody>
+			</table>
+		</div>
+	</div>
+</div>
+
+<div class="d-flex justify-content-center mt-4">
+       <ul class="pagination" id="pagingUl">
+           <li class="page-item" th:if="${paging.start > 1}">
+               <a class="page-link"
+                  th:href="@{/appr/list_form(keyword=${search.keyword}, comId=${search.comId}, forStatus=${search.forStatus}, page=${paging.start -1})}">이전</a>
+           </li>
+           <th:block th:each="i : ${#numbers.sequence(paging.start, paging.end)}">
+            <li class="page-item" th:classappend="${paging.current == i} ? 'active' : ''">
+                <a class="page-link"
+                   th:href="@{/appr/list_form(keyword=${search.keyword}, comId=${search.comId}, forStatus=${search.forStatus}, page=${i})}"
+                   th:text="${i}"></a>
+            </li>
+		</th:block>
+           <li class="page-item" th:if="${paging.end < paging.pagetotal}">
+               <a class="page-link" th:href="@{/appr/list_form(keyword=${search.keyword}, comId=${search.comId}, forStatus=${search.forStatus}, page=${paging.end +1})}">다음</a>
+           </li>
+       </ul>
+   </div>
+
+<script>
+	///////////////////// 회사 이름이랑 일치하는거 출력 /////////////////////
+	window.addEventListener("load", function(){
+		
+		let companySearch = document.getElementById("comName");
+		let comId = document.getElementById("comId");
+		let companyDropdown = document.getElementById("companyDropdown");
+		
+		// 입력 할때마다 실행
+		companySearch.addEventListener("keyup", function(e){
+			let value = e.target.value.trim();
+			
+			if(value !== "") {
+				// 데이터를 /searchCompany 경로에 company라는 이름으로 보냄
+				fetch(`/appr/searchCompany?company=${encodeURIComponent(value)}`)
+				.then(response => response.json())
+				.then(data => {
+					companyDropdown.innerHTML = ""; // 기존 목록 비우기
+					
+					if(data && data.length > 0){
+						companyDropdown.style.display = "block";
+						
+						data.forEach(item => {
+							let btn = document.createElement("button");
+							btn.type = "button";
+							btn.className = "dropdown-item d-flex justify-content-between align-items-center";
+							
+							// 회사 이름
+							let nameSpan = document.createElement("span");
+							nameSpan.className = "company-name";
+							btn.textContent = item.comName;
+							
+							// 사업자 번호
+							let bizSpan = document.createElement("span");
+							bizSpan.className = "text-muted small ms-2";
+							bizSpan.textContent = item.bizNo;
+							
+							// 집어 넣기
+							btn.appendChild(nameSpan);
+							btn.appendChild(bizSpan);
+							
+							// 검색해서 나온 회사 이름 클릭
+							btn.addEventListener("click", function(){
+								companySearch.value = item.comName; // 회사이름 넣기
+								comId.value = item.comId; // insert구문 실행위해 com_id 값 넣기
+								companyDropdown.style.display = "none"; // 드롭다운 닫기
+							});
+							companyDropdown.appendChild(btn);
+						});
+					}
+					else{ // 검색결과 없을때
+						companyDropdown.innerHTML = "<span class='dropdown-item text-muted disabled'>검색 결과가 없습니다.</span>";
+						companyDropdown.style.display = "block";
+					}
+				})
+				.catch(error => {
+					console.error("회사 검색 오류:",error);
+					companyDropdown.style.display = "none";
+				});
+			}
+			else{ // 입력란 비어있을때 처리
+				comId.value = "";
+				companyDropdown.innerHTML = "";
+				companyDropdown.style.display = "none";
+				
+			}
+		});
+		// 입력창 외부공간 클릭시 정리
+		document.addEventListener("click", function(e){
+			if(e.target !== companySearch && e.target !== companyDropdown){
+				companyDropdown.style.display = "none";
+			}
+		});
+	});
+	
+	///////////////////// 회사 이름이랑 일치하는거 출력 /////////////////////
+	
+	///////////////////// 키워드,회사 미입력시 입력 유도 /////////////////////
+    
+	window.addEventListener("load", function(){
+		let searchForm = document.getElementById("searchForm");
+		let keyword = document.getElementById("keyword");
+		let comName = document.getElementById("comName");
+		let searchErr = document.getElementById("search-error");
+		
+		searchForm.addEventListener("submit", function(e){
+			let keywordVal = keyword.value.trim();
+			let comNameVal = comName.value.trim();
+			
+			// 둘다 비어있는 경우
+			if( keywordVal === "" && comNameVal === ""){
+				// 전송 막기
+				e.preventDefault();
+				
+				// 테두리 강조 및 안내 문구 표시
+				keyword.style.borderColor = "var(--sb-red)";
+				keyword.style.boxShadow = "0 0 0 3px rgba(220, 38, 38, .12)";
+				comName.style.borderColor = "var(--sb-red)";
+				comName.style.boxShadow = "0 0 0 3px rgba(220, 38, 38, .12)";
+				
+				searchErr.style.display = "block";
+				keyword.focus(); // 키워드로 입력 커서 넘기기
+			}
+			else{
+				// 입력되었다면 정상적으로 초기화후 서브밋
+				keyword.style.borderColor = "";
+				keyword.style.boxShadow = "";
+				comName.style.borderColor = "";
+				comName.style.boxShadow = "";
+			}
+		})
+		
+		// 둘중 하나라도 입력할시 정상적으로 돌리기
+		keyword.addEventListener("input", clearError);
+		comName.addEventListener("input", clearError);
+		
+		function clearError(){ // 저안에 집어넣기 더러워서 따로뺌
+			if(keyword.value.trim() !== "" || comName.value.trim() !== ""){
+				keyword.style.borderColor = "";
+				keyword.style.boxShadow = "";
+				comName.style.borderColor = "";
+				comName.style.boxShadow = "";
+				searchErr.style.display = "none";
+			}
+		}
+	});
+	
+	///////////////////// 키워드,회사 미입력시 입력 유도 /////////////////////
+</script>
+</main>
+</body>
+</html>

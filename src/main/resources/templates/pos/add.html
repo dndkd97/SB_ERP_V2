@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+	xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	layout:decorate="~{fragments/layout}">
+<head>
+<title>직급 등록</title>
+</head>
+<body>
+	<section class="pos_add sb-content" layout:fragment="content">
+
+		<!-- 페이지 헤더 -->
+		<div class="sb-page-head">
+			<div class="sb-page-head__txt">
+				<div class="sb-breadcrumb">
+					<a th:href="@{/}">홈</a> <i class="bi bi-chevron-right"></i> <a
+						th:href="@{/pos/list}">직급 관리</a> <i class="bi bi-chevron-right"></i>
+					직급 등록
+				</div>
+				<h1>직급 등록</h1>
+				<p>새로운 직급을 등록합니다.</p>
+			</div>
+			<div class="sb-page-head__actions">
+				<a th:href="@{/pos/list}" class="btn btn-ghost btn-sm"> <i
+					class="bi bi-arrow-left"></i> 목록으로
+				</a>
+			</div>
+		</div>
+
+		<div class="sb-card mb-3">
+			<div class="sb-card__head">
+				<h2>
+					<i class="bi bi-diagram-3 me-2 text-soft"></i> 직급 정보
+				</h2>
+			</div>
+			<div class="sb-card__body">
+				<form th:action="@{/pos/add}" method="post"
+					onsubmit="return checkForm()">
+
+					<div class="mb-3">
+						<label for="posCode" class="sb-form-label">직급 코드 <span>*</span></label>
+						<input type="text" class="form-control" id="posCode"
+							name="posCode" placeholder="예: MGR" maxlength="20" required />
+						<div class="tPosCode duplicateChkBox"></div>
+						<small class="text-faint">회사 내에서 중복되지 않는 짧은 식별 코드입니다.</small>
+					</div>
+
+					<div class="mb-3">
+						<label for="posName" class="sb-form-label">직급명 <span>*</span></label>
+						<input type="text" class="form-control" id="posName"
+							name="posName" placeholder="예: 부장" maxlength="50" required />
+					</div>
+
+					<div class="mb-3">
+						<label for="posOrder" class="sb-form-label">순서 <span>*</span></label>
+						<input type="number" class="form-control" id="posOrder"
+							name="posOrder" placeholder="숫자가 작을수록 상위" min="1" required /> <small
+							class="text-faint">직급 목록에서 표시 순서(오름차순).</small>
+					</div>
+
+					<div class="sb-form-actions">
+						<a th:href="@{/pos/list}" class="btn btn-ghost">취소</a>
+						<button type="submit" class="btn btn-sb" id="submitBtn">
+							<i class="bi bi-check-lg"></i> 등록
+						</button>
+					</div>
+				</form>
+			</div>
+		</div>
+
+	</section>
+
+	<th:block layout:fragment="script">
+		<script th:inline="javascript">
+    const CTX = /*[[@{/}]]*/ '/';
+
+    window.addEventListener("load", function() {
+        const posCode = document.getElementById("posCode");
+        const targetCode = document.querySelector(".tPosCode");
+        const submitBtn = document.getElementById("submitBtn");
+
+        let codeOk = false;
+
+        function updateSubmit() {
+            submitBtn.disabled = !codeOk;
+        }
+        updateSubmit();
+
+        // 직급 코드 중복 검사
+        posCode.addEventListener("blur", function(e) {
+            const value = e.target.value.trim();
+            if (value === "") {
+                targetCode.textContent = "직급 코드를 입력하세요.";
+                targetCode.className = "tPosCode duplicateChkBox sb-badge--amber";
+                codeOk = false;
+                updateSubmit();
+                return;
+            }
+
+            fetch(CTX + "pos/checkCode?posCode=" + encodeURIComponent(value))
+                .then(res => res.json())
+                .then(data => {
+                    if (data.duplicate) {
+                        targetCode.textContent = "이미 사용중인 코드입니다.";
+                        targetCode.className = "tPosCode duplicateChkBox sb-badge--red";
+                        codeOk = false;
+                    } else {
+                        targetCode.textContent = "사용 가능한 코드입니다.";
+                        targetCode.className = "tPosCode duplicateChkBox sb-badge--green";
+                        codeOk = true;
+                    }
+                    updateSubmit();
+                })
+                .catch(err => {
+                    targetCode.textContent = "서버 오류입니다.";
+                    targetCode.className = "tPosCode duplicateChkBox sb-badge--cyan";
+                    codeOk = false;
+                    updateSubmit();
+                });
+        });
+    });
+
+    function checkForm() {
+        const fields = ['posCode', 'posName', 'posOrder'];
+        for (let i = 0; i < fields.length; i++) {
+            const el = document.getElementById(fields[i]);
+            if (el.value.trim() === '') {
+                el.focus();
+                return false;
+            }
+        }
+        return true;
+    }
+	</script>
+	</th:block>
+</body>
+</html>

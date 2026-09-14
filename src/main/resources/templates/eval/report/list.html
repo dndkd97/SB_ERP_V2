@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+	xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+	xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	layout:decorate="~{fragments/layout}">
+<head>
+<title>AI 리포트</title>
+</head>
+<body>
+	<section class="eval_report_list sb-content" layout:fragment="content">
+
+		<!-- 페이지 헤더 -->
+		<div class="sb-page-head">
+			<div class="sb-page-head__txt">
+				<div class="sb-breadcrumb">
+					<a th:href="@{/}">홈</a> <i class="bi bi-chevron-right"></i> 인사평가 <i
+						class="bi bi-chevron-right"></i> AI 리포트
+				</div>
+				<h1>AI 리포트</h1>
+				<p>회차별 사원 성과 요약 리포트를 확인합니다.</p>
+			</div>
+			<div class="sb-page-head__actions">
+				<a th:if="${period != null}" th:href="@{/eval/report/list}"
+					class="btn btn-ghost btn-sm"> <i class="bi bi-arrow-repeat"></i>
+					회차 변경
+				</a> <a sec:authorize="hasAnyRole('ROOT', 'ADMIN')"
+					th:href="@{/eval/period/list}" class="btn btn-ghost btn-sm"> <i
+					class="bi bi-calendar-event"></i> 회차 관리
+				</a>
+			</div>
+		</div>
+
+		<!-- Flash 메시지 -->
+		<div th:if="${successMsg}" class="sb-alert sb-alert--success mb-3">
+			<i class="bi bi-check-circle me-2"></i> <span th:text="${successMsg}">메시지</span>
+		</div>
+		<div th:if="${errorMsg}" class="sb-alert sb-alert--danger mb-3">
+			<i class="bi bi-exclamation-circle me-2"></i> <span
+				th:text="${errorMsg}">메시지</span>
+		</div>
+
+		<!-- ══════════════════════════════════════════ -->
+		<!-- 			회차 선택됨: 사원별 리포트 목록			 -->
+		<!-- ══════════════════════════════════════════ -->
+		<div th:if="${period != null}">
+
+			<!-- ═══ 통합 헤더: 회차 정보 + 검색 + 재생성 ═══ -->
+			<div class="sb-card mb-3">
+				<div class="sb-card__body">
+					<div
+						class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+
+						<!-- 좌: 회차 정보 -->
+						<div class="d-flex align-items-center gap-3 flex-wrap">
+							<span class="sb-badge"
+								th:classappend="${period.periodStatus == 'REPORTED'} ? 'sb-badge--green' : 'sb-badge--gray'"
+								th:text="${period.periodStatus}">STATUS</span>
+							<div>
+								<div style="font-size: 16px; font-weight: 650"
+									th:text="${period.title}">회차 제목</div>
+								<div class="text-faint" style="font-size: 12px"
+									th:text="|${period.evalYear} · ${period.evalTerm} · 제출 ${totalEvals}건|">
+									2025 · H1 · 제출 30건</div>
+							</div>
+						</div>
+
+						<!-- 우: 검색 툴바 + 재생성 버튼 -->
+						<div class="d-flex align-items-center gap-2 flex-wrap">
+
+							<!-- 검색 폼 -->
+							<form th:action="@{/eval/report/list}" method="get"
+								class="d-flex gap-2 align-items-center">
+								<input type="hidden" name="periodId"
+									th:value="${search.periodId}" />
+
+								<div class="sb-field mb-0">
+									<select name="deptId" style="min-width: 120px">
+										<option value="">전체 부서</option>
+										<option th:each="dept : ${deptList}" th:value="${dept.deptId}"
+											th:text="${dept.deptName}"
+											th:selected="${search.deptId != null and search.deptId == dept.deptId}">부서명</option>
+									</select>
+								</div>
+
+								<div class="sb-field sb-field--search mb-0">
+									<i class="bi bi-search"></i> <input type="text" name="keyword"
+										placeholder="사원명 / 사번" th:value="${search.keyword}"
+										style="min-width: 160px" />
+								</div>
+
+								<button type="submit" class="btn btn-sb btn-sm">검색</button>
+								<a th:href="@{/eval/report/list(periodId=${search.periodId})}"
+									class="btn btn-ghost btn-sm" title="초기화"> <i
+									class="bi bi-arrow-counterclockwise"></i>
+								</a>
+							</form>
+
+							<!-- 재생성 버튼 (구분선 + 관리자 전용) -->
+							<div sec:authorize="hasAnyRole('ROOT', 'ADMIN')"
+								th:if="${period.periodStatus != 'REPORTING'}"
+								class="d-flex align-items-center gap-2"
+								style="border-left: 1px solid var(--sb-border); padding-left: 8px">
+								<form th:action="@{/eval/report/generate}" method="post" class="d-inline">
+									<input type="hidden" name="periodId"
+										th:value="${period.periodId}">
+									<button type="submit" class="btn btn-ghost btn-sm"
+										onclick="return confirm('전체 사원 리포트를 재생성합니다. 계속하시겠습니까?')">
+										<i class="bi bi-arrow-clockwise me-1"></i> 전체 재생성
+									</button>
+								</form>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- 리포트 목록 -->
+			<div th:if="${#lists.isEmpty(reports)}" class="sb-card">
+				<div class="sb-empty" style="padding: 60px 20px">
+					<i class="bi bi-file-earmark-bar-graph"></i>
+					<p>
+						아직 생성된 리포트가 없습니다.<br> <span
+							sec:authorize="hasAnyRole('ROOT', 'ADMIN')">위 "전체 재생성"
+							버튼으로 리포트를 생성하세요.</span>
+					</p>
+				</div>
+			</div>
+
+			<div th:unless="${#lists.isEmpty(reports)}" class="row g-3">
+				<div th:each="r : ${reports}" class="col-md-6 col-lg-3">
+					<div class="sb-card h-100">
+						<div class="sb-card__body">
+
+							<!-- 상단: 등급 + 사원명 -->
+							<div
+								class="d-flex justify-content-between align-items-start mb-3">
+								<div>
+									<div style="font-size: 16px; font-weight: 650"
+										th:text="${r.empName}">홍길동</div>
+									<div class="text-faint" style="font-size: 12px">
+										<span th:text="${r.empNo}">EMP-001</span> · <span
+											th:text="${r.deptName}">부서</span> · <span
+											th:text="${r.posName}">직급</span>
+									</div>
+								</div>
+								<div class="text-center">
+									<div th:text="${r.grade}" class="sb-grade sb-grade--sm"
+										th:classappend="'sb-grade--' + ${#strings.toLowerCase(r.grade)}">S</div>
+									<div class="text-faint"
+										style="font-size: 11px; margin-top: 2px">등급</div>
+								</div>
+							</div>
+
+							<!-- 종합 점수 + 감성 -->
+							<div
+								class="d-flex justify-content-between align-items-center mb-3"
+								style="padding: 10px; background: var(--sb-bg-2); border-radius: 6px">
+								<div>
+									<div class="text-faint" style="font-size: 11px">종합 점수</div>
+									<div style="font-size: 18px; font-weight: 700"
+										th:text="${r.overallScore} + ' / 5.00'">4.20 / 5.00</div>
+								</div>
+								<div>
+									<span class="sb-badge"
+										th:classappend="${r.sentimentLabel == 'POSITIVE'} ? 'sb-badge--accent'
+                                                    : (${r.sentimentLabel == 'NEGATIVE'} ? 'sb-badge--danger' : 'sb-badge--muted')"
+										th:text="${r.sentimentLabel}">SENTIMENT</span>
+								</div>
+							</div>
+
+							<!-- 세부 점수 (5개 항목 미니 바) -->
+							<div style="font-size: 12px">
+								<div class="d-flex justify-content-between mb-1">
+									<span>성과</span><span th:text="${r.avgPerformance}">4.5</span>
+								</div>
+								<div class="d-flex justify-content-between mb-1">
+									<span>전문성</span><span th:text="${r.avgExpertise}">4.0</span>
+								</div>
+								<div class="d-flex justify-content-between mb-1">
+									<span>협업</span><span th:text="${r.avgTeamwork}">4.2</span>
+								</div>
+								<div class="d-flex justify-content-between mb-1">
+									<span>태도</span><span th:text="${r.avgAttitude}">4.0</span>
+								</div>
+								<div class="d-flex justify-content-between">
+									<span>성장</span><span th:text="${r.avgGrowth}">3.8</span>
+								</div>
+							</div>
+
+							<!-- 액션 -->
+							<div class="mt-3 d-flex gap-2">
+								<a th:href="@{/eval/report/detail(reportId=${r.reportId})}"
+									class="btn btn-ghost btn-sm flex-fill"> <i
+									class="bi bi-eye me-1"></i> 상세
+								</a>
+								<form sec:authorize="hasAnyRole('ROOT', 'ADMIN')"
+									th:if="${period.periodStatus == 'REPORTED'}"
+									th:action="@{/eval/report/regenerate}" method="post"
+									class="flex-fill">
+									<input type="hidden" name="periodId"
+										th:value="${period.periodId}"> <input type="hidden"
+										name="empId" th:value="${r.empId}">
+									<button type="submit" class="btn btn-ghost btn-sm w-100"
+										onclick="return confirm('이 사원의 리포트만 재생성합니다.')">
+										<i class="bi bi-arrow-clockwise me-1"></i> 재생성
+									</button>
+								</form>
+							</div>
+
+							<div class="text-faint mt-2" style="font-size: 11px">
+								<i class="bi bi-clock me-1"></i> <span
+									th:text="${r.generatedAt}">2025-01-01 12:00</span> · <span
+									th:text="${r.modelName}">mock-analyzer-v1</span>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- 페이징: 총 개수(우) + 페이지 번호(중앙) -->
+			<div class="position-relative mt-4"
+				th:if="${paging != null and paging.listtotal > 0}">
+
+				<!-- 페이지 번호 (중앙 정렬) -->
+				<nav class="position-absolute top-50 start-50 translate-middle">
+					<ul class="pagination pagination-sm mb-0">
+						<!-- 이전 -->
+						<li class="page-item"
+							th:classappend="${paging.start <= 1} ? 'disabled'"><a
+							class="page-link"
+							th:href="@{/eval/report/list(
+                       periodId=${search.periodId},
+                       deptId=${search.deptId},
+                       keyword=${search.keyword},
+                       page=${paging.start - 1})}">
+								<i class="bi bi-chevron-left"></i>
+						</a></li>
+						<!-- 페이지 번호 -->
+						<li th:each="i : ${#numbers.sequence(paging.start, paging.end)}"
+							class="page-item"
+							th:classappend="${paging.current == i} ? 'active'"><a
+							class="page-link"
+							th:href="@{/eval/report/list(
+                       periodId=${search.periodId},
+                       deptId=${search.deptId},
+                       keyword=${search.keyword},
+                       page=${i})}"
+							th:text="${i}">1</a></li>
+						<!-- 다음 -->
+						<li class="page-item"
+							th:classappend="${paging.end >= paging.pagetotal} ? 'disabled'">
+							<a class="page-link"
+							th:href="@{/eval/report/list(
+                       periodId=${search.periodId},
+                       deptId=${search.deptId},
+                       keyword=${search.keyword},
+                       page=${paging.end + 1})}">
+								<i class="bi bi-chevron-right"></i>
+						</a>
+						</li>
+					</ul>
+				</nav>
+				
+				<!-- 총 개수 (우측) -->
+				<span class="text-faint d-block text-end">
+					<span th:if="${search.deptId != null or (search.keyword != null and search.keyword != '')}">
+						검색 결과 <b th:text="${paging.listtotal}">0</b>건
+					</span>
+					<span
+					th:unless="${search.deptId != null or (search.keyword != null and search.keyword != '')}">
+						총 <b th:text="${paging.listtotal}">0</b>건
+					</span>
+				</span>
+			</div>
+		</div>
+
+	</section>
+</body>
+</html>

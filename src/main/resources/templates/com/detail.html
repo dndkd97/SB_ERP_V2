@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{fragments/layout}">
+<head>
+    <title th:text="${com.comName} + ' 정보 · SBerp'">회사 정보</title>
+</head>
+<body>
+<main layout:fragment="content" class="sb-content">
+    <!-- 페이지 헤더 -->
+    <div class="sb-page-head">
+        <div class="sb-page-head__txt">
+            <div class="sb-breadcrumb">
+                <a th:href="@{/}">홈</a>
+                <i class="bi bi-chevron-right"></i>
+                <a th:href="@{/com/my}">회사 정보</a>
+                <i class="bi bi-chevron-right"></i>
+                <span th:text="${com.comName}"></span>
+            </div>
+            <h1 th:text="${com.comName} + ' 회사 정보'"></h1>
+            <p th:text="${com.comName} + ' 회사의 기본 정보와 조직도를 확인합니다.'"></p>
+        </div>
+        <div class="sb-page-head__actions">
+        	<a th:href="@{/com/edit(comId=${com.comId})}" class="btn btn-sb btn-sm">
+                <i class="bi bi-pencil"></i> 수정하기
+            </a>
+            <a th:href="@{/com/list}" class="btn btn-ghost btn-sm">
+                <i class="bi bi-arrow-left"></i> 목록으로
+            </a>
+        </div>
+    </div>
+
+    <!-- 회사 요약 카드 -->
+    <div class="sb-card mc-summary mb-3">
+        <div class="mc-logo">
+            <!-- [변경점] c:choose/c:when/c:otherwise -> th:if/th:unless, fn:substring -> #strings.substring -->
+            <img th:if="${not #strings.isEmpty(com.comLogo)}" th:src="@{${com.comLogo}}" th:alt="${com.comName}">
+            <span th:unless="${not #strings.isEmpty(com.comLogo)}" th:text="${#strings.substring(com.comName, 0, 1)}"></span>
+        </div>
+        <div class="mc-summary__main">
+            <div class="mc-summary__name" th:text="${com.comName}"></div>
+            <div class="mc-summary__sub" th:text="'대표 ' + ${com.comCeo}"></div>
+        </div>
+        <div class="mc-stat-divider"></div>
+        <div class="mc-stat-col">
+            <div class="mc-stat-col__label">총 임직원</div>
+            <div class="mc-stat-col__val" th:text="${stats.empTotal} + '명'"></div>
+        </div>
+        <div class="mc-stat-col">
+            <div class="mc-stat-col__label">부서</div>
+            <div class="mc-stat-col__val" th:text="${stats.deptTotal}"></div>
+        </div>
+        <div class="mc-stat-col">
+            <div class="mc-stat-col__label">본사</div>
+            <div class="mc-stat-col__val" th:text="${stats.dept1Total}"></div>
+        </div>
+        <div class="mc-stat-col">
+            <div class="mc-stat-col__label">부서/팀</div>
+            <div class="mc-stat-col__val" th:text="${stats.dept2Total}"></div>
+        </div>
+    </div>
+
+    <!-- 본문 2단 구성 -->
+    <div class="row g-3">
+
+        <!-- 좌측 : 회사 기본 정보 -->
+        <div class="col-lg-5">
+            <div class="sb-card h-100">
+                <div class="sb-card__head">
+                    <h2>회사 기본 정보</h2>
+                </div>
+                <div class="sb-card__body">
+
+                    <div class="mc-info-row">
+                        <div class="mc-info-icon"><i class="bi bi-building"></i></div>
+                        <div>
+                            <div class="mc-info-label">회사명</div>
+                            <div class="mc-info-val" th:text="${com.comName}"></div>
+                        </div>
+                    </div>
+
+                    <div class="mc-info-row">
+                        <div class="mc-info-icon"><i class="bi bi-person-badge"></i></div>
+                        <div>
+                            <div class="mc-info-label">대표자</div>
+                            <div class="mc-info-val" th:text="${com.comCeo}"></div>
+                        </div>
+                    </div>
+
+                    <div class="mc-info-row">
+                        <div class="mc-info-icon"><i class="bi bi-card-text"></i></div>
+                        <div>
+                            <div class="mc-info-label">사업자등록번호</div>
+                            <div class="mc-info-val" th:text="${com.bizNo}"></div>
+                        </div>
+                    </div>
+
+                    <div class="mc-info-row">
+                        <div class="mc-info-icon"><i class="bi bi-telephone"></i></div>
+                        <div>
+                            <div class="mc-info-label">대표 전화</div>
+                            <div class="mc-info-val" th:text="${com.comTel}"></div>
+                        </div>
+                    </div>
+
+                    <div class="mc-info-row">
+                        <div class="mc-info-icon"><i class="bi bi-tag"></i></div>
+                        <div>
+                            <div class="mc-info-label">업종</div>
+                            <div class="mc-info-val">
+                                <span th:switch="${com.industryGrpCode}">
+                                    <th:block th:case="'C'">제조업</th:block>
+                                    <th:block th:case="'F'">건설업</th:block>
+                                    <th:block th:case="'G'">도매 및 소매업</th:block>
+                                    <th:block th:case="'H'">운수 및 창고업</th:block>
+                                    <th:block th:case="'I'">숙박 및 음식점업</th:block>
+                                    <th:block th:case="'J'">정보통신업</th:block>
+                                    <th:block th:case="'K'">금융 및 보험업</th:block>
+                                    <th:block th:case="'M'">전문, 과학 및 기술 서비스업</th:block>
+                                    <th:block th:case="'N'">사업시설관리, 사업지원 및 임대 서비스업</th:block>
+                                    <th:block th:case="'S'">협회 및 단체, 수리 및 기타 개인 서비스업</th:block>
+                                    <th:block th:case="*">미분류</th:block>
+                                </span>
+                                <span class="text-faint" style="font-weight:500">
+                                    <span th:switch="${com.industryCode}">
+                                        <th:block th:case="'10120'">· 육류 가공 및 저장 처리업</th:block>
+                                        <th:block th:case="'20421'">· 계면활성제 제조업</th:block>
+                                        <th:block th:case="'26290'">· 기타 전자부품 제조업</th:block>
+                                        <th:block th:case="'41221'">· 단독주택 건설업</th:block>
+                                        <th:block th:case="'42111'">· 도로 건설업</th:block>
+                                        <th:block th:case="'45111'">· 국산 승용차 판매업</th:block>
+                                        <th:block th:case="'46900'">· 상품 종합 도매업</th:block>
+                                        <th:block th:case="'47190'">· 기타 종합 소매업</th:block>
+                                        <th:block th:case="'49110'">· 철도 운송업</th:block>
+                                        <th:block th:case="'52941'">· 소화물 전문 운송업(택배)</th:block>
+                                        <th:block th:case="'55101'">· 호텔업</th:block>
+                                        <th:block th:case="'56111'">· 한식 음식점업</th:block>
+                                        <th:block th:case="'58222'">· 응용 소프트웨어 개발 및 공급업</th:block>
+                                        <th:block th:case="'62010'">· 컴퓨터 프로그래밍 서비스업</th:block>
+                                        <th:block th:case="'63910'">· 뉴스 제공업</th:block>
+                                        <th:block th:case="'64121'">· 은행업</th:block>
+                                        <th:block th:case="'64992'">· 신탁업 및 집합투자업</th:block>
+                                        <th:block th:case="'70112'">· 지주회사</th:block>
+                                        <th:block th:case="'71531'">· 기타 엔지니어링서비스업</th:block>
+                                        <th:block th:case="'72911'">· 사업시설 유지관리 서비스업</th:block>
+                                        <th:block th:case="'74110'">· 인력 공급 및 고용 알선업</th:block>
+                                        <th:block th:case="'75291'">· 여행사업</th:block>
+                                        <th:block th:case="'94120'">· 산업 및 전문가 단체</th:block>
+                                        <th:block th:case="'95120'">· 컴퓨터 및 주변기기 수리업</th:block>
+                                        <th:block th:case="*"></th:block>
+                                    </span>
+                                    (<span th:text="${com.industryCode}"></span>)
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 우측 : 조직도 (읽기전용) -->
+        <div class="col-lg-7">
+            <div class="sb-card h-100">
+                <div class="sb-card__head">
+                    <h2>조직도</h2>
+                </div>
+                <div class="sb-card__body--flush">
+                    <div class="mc-org">
+                        <div th:each="dept : ${deptList}"
+                             th:with="curTone=${dept.depth == 0} ? 'blue' : (${dept.depth == 1} ? 'green' : (${dept.depth == 2} ? 'amber' : 'cyan'))"
+                             th:class="'mc-org-row depth-' + ${dept.depth} + ' tone-' + ${curTone}">
+                            <div class="mc-org-icon">
+                                <i th:class="'bi ' + (${dept.depth == 1} ? 'bi-diagram-3-fill' : 'bi-people-fill')"></i>
+                            </div>
+                            <div class="mc-org-name">
+                                <span th:text="${dept.deptName}"></span>
+                                <span th:if="${not #strings.isEmpty(dept.leaderName)}" class="mc-org-lead"
+                                      th:text="${dept.leaderName} + ' 부서장'"></span>
+                            </div>
+                            <span class="sb-badge sb-badge--gray mc-org-count" th:text="${dept.empCount} + '명'"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+</body>
+</html>

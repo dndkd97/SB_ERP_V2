@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+	xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	layout:decorate="~{fragments/layout}">
+<head>
+<title>사원 정보 수정</title>
+</head>
+<body>
+	<section class="emp_edit sb-content" layout:fragment="content">
+
+		<!-- 페이지 헤더 -->
+		<div class="sb-page-head">
+			<div class="sb-page-head__txt">
+				<div class="sb-breadcrumb">
+					<a th:href="@{/}">홈</a> <i class="bi bi-chevron-right"></i> <a
+						th:href="@{/emp/list}">사원관리</a> <i class="bi bi-chevron-right"></i>
+					정보 수정
+				</div>
+				<h1>
+					<span th:text="${emp.empName}">홍길동</span> · 정보 수정
+				</h1>
+				<p>사원 정보를 수정합니다.</p>
+			</div>
+			<div class="sb-page-head__actions">
+				<a th:href="@{/emp/detail(empId=${emp.empId})}"
+					class="btn btn-ghost btn-sm"> <i class="bi bi-arrow-left"></i>
+					상세 페이지로
+				</a>
+			</div>
+		</div>
+		
+		<form th:action="@{/emp/edit}" method="post"
+			onsubmit="return checkForm()">
+			<input type="hidden" name="empId" th:value="${emp.empId}" />
+			<div th:if="${!isAdmin}" class="sb-alert sb-alert--info">
+				<i class="bi bi-info-circle me-2"></i>
+				이메일과 연락처만 수정할 수 있습니다. 다른 정보 수정은 관리자에게 문의하세요.
+			</div>
+			<!-- 기본 정보 -->
+			<div class="sb-card mb-3">
+				<div class="sb-card__head">
+					<h2>
+						<i class="bi bi-person me-2 text-soft"></i> 기본 정보
+					</h2>
+					<div class="right">
+						<span class="sb-badge sb-badge--gray" th:text="${emp.empNo}">EMP-001</span>
+					</div>
+				</div>
+				<div class="edInfoBox sb-card__body">
+					<div class="row g-3">
+						<div class="col-md-6">
+							<label for="empNo" class="sb-form-label">사번</label> <input
+								type="text" class="form-control rdOnly" id="empNo" name="empNo"
+								th:value="${emp.empNo}" readonly />
+						</div>
+
+						<div class="col-md-6">
+							<label for="empName" class="sb-form-label">이름 <span>*</span></label>
+							<input type="text" class="form-control" id="empName" name="empName" 
+							th:value="${emp.empName}" th:readonly="${!isAdmin}" 
+							th:classappend="${!isAdmin} ? 'rdOnly'" required />
+						</div>
+
+						<div class="col-md-6">
+							<label for="deptId" class="sb-form-label">부서 <span>*</span></label>
+							<select class="form-select" id="deptId" name="deptId" 
+							th:classappend="${!isAdmin} ? 'rdOnly'" th:disabled="${!isAdmin}" required>
+								<option th:each="dept : ${deptList}" th:value="${dept.deptId}"
+									th:text="${dept.deptName}" th:selected="${emp.deptId == dept.deptId}">
+									부서명
+								</option>
+							</select>
+						</div>
+
+						<div class="col-md-6">
+							<label for="posId" class="sb-form-label">직급 <span>*</span></label>
+							<select id="posId" name="posId" class="form-select" 
+							th:classappend="${!isAdmin} ? 'rdOnly'" th:disabled="${!isAdmin}"  required>
+								<option th:each="pos : ${posList}" th:value="${pos.posId}"
+									th:text="${pos.posName}"
+									th:selected="${emp.posId == pos.posId}">직급명</option>
+							</select>
+						</div>
+
+						<div class="col-md-6">
+							<label for="empEmail" class="sb-form-label">이메일 <span>*</span></label>
+							<input type="text" class="form-control" id="empEmail"
+								name="empEmail" th:value="${emp.empEmail}" required />
+						</div>
+
+						<div class="col-md-6">
+							<label for="empMobile" class="sb-form-label">연락처 <span>*</span></label>
+							<input type="text" class="form-control" id="empMobile"
+								name="empMobile" th:value="${emp.empMobile}" required />
+						</div>
+
+						<div class="col-md-6">
+							<label for="hireDate" class="sb-form-label">입사일</label> <input
+								type="date" class="form-control rdOnly" id="hireDate"
+								name="hireDate" th:value="${emp.hireDate}" readonly />
+						</div>
+
+						<div class="col-md-6">
+							<label for="empStatus" class="sb-form-label">재직 상태 <span>*</span></label>
+							<select id="empStatus" name="empStatus" class="form-select"
+								th:classappend="${!isAdmin} ? 'rdOnly'" th:disabled="${!isAdmin}" required>
+								<option value="재직" th:selected="${emp.empStatus == '재직'}">재직</option>
+								<option value="휴직" th:selected="${emp.empStatus == '휴직'}">휴직</option>
+								<option value="퇴직" th:selected="${emp.empStatus == '퇴직'}">퇴직</option>
+							</select>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- 버튼 -->
+			<div class="d-flex gap-2 justify-content-end">
+				<a th:href="@{/emp/list}" class="btn btn-ghost" title="취소">취소</a>
+				<button type="submit" class="btn btn-sb" title="수정">
+					<i class="bi bi-check-lg"></i> 변경사항 저장
+				</button>
+			</div>
+		</form>
+	</section>
+
+	<th:block layout:fragment="script">
+		<script>
+    function checkForm() {
+        const fields = ['empNo', 'empName', 'deptId', 'posId', 'empEmail', 'empMobile', 'hireDate'];
+        for (let i = 0; i < fields.length; i++) {
+            const el = document.getElementById(fields[i]);
+            if (el.value.trim() === '') {
+                el.focus();
+                return false;
+            }
+        }
+        return true;
+    }
+</script>
+	</th:block>
+</body>
+</html>

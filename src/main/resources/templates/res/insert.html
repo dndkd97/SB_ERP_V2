@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{fragments/layout}">
+<head>
+    <title>자원 등록</title>
+</head>
+<body>
+<main layout:fragment="content" class="sb-content"
+      th:with="backUrl=${param.returnUrl != null} ? ${param.returnUrl[0]} : @{/res/list}">
+
+<div th:if="${not #strings.isEmpty(msg)}" class="position-fixed bottom-0 end-0 p-3" style="z-index:1100">
+    <div class="toast align-items-center text-bg-danger border-0 show" role="alert">
+        <div class="d-flex">
+            <div class="toast-body"><i class="bi bi-exclamation-triangle-fill me-1"></i><span th:text="${msg}"></span></div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+</div>
+
+<div class="sb-page-head">
+    <div class="sb-page-head__txt">
+        <div class="sb-breadcrumb">
+            <a th:href="@{/res/list}">자원 관리</a>
+            <i class="bi bi-chevron-right"></i> 자원 등록
+        </div>
+        <h1>자원 등록</h1>
+        <p>예약에 사용할 회의실, 장비, 차량 정보를 입력합니다.</p>
+    </div>
+    <div class="sb-page-head__actions">
+        <a th:href="${backUrl}" class="btn btn-ghost btn-sm"><i class="bi bi-arrow-left"></i> 목록으로</a>
+    </div>
+</div>
+
+<form id="resForm" novalidate th:action="@{/res/insert}" method="post">
+    <input th:if="${param.returnUrl != null}" type="hidden" name="returnUrl" th:value="${param.returnUrl[0]}"/>
+
+    <div class="sb-card mb-3">
+        <div class="sb-card__head">
+            <h2>기본 정보</h2>
+            <span class="sub">표시는 필수 입력 항목입니다.</span>
+        </div>
+        <div class="sb-card__body">
+            <div class="row g-3">
+                <!-- 1그룹: 자원코드 / 자원명 / 자원유형 -->
+                <div class="col-md-3">
+                    <label for="resCode" class="sb-form-label">자원코드 <span style="color:var(--sb-red)">*</span></label>
+                    <input type="text" name="resCode" id="resCode" class="form-control"
+                           placeholder="예: RM004" maxlength="50"
+                           onblur="sbCheckResCode()" required>
+                    <div class="invalid-feedback" id="eResCode">자원코드를 입력하세요.</div>
+                </div>
+                <div class="col-md-6">
+                    <label for="resName" class="sb-form-label">자원명 <span style="color:var(--sb-red)">*</span></label>
+                    <input type="text" name="resName" id="resName" class="form-control"
+                           placeholder="예: 대회의실, 노트북, 카니발" maxlength="100" required>
+                    <div class="invalid-feedback" id="eResName">자원명을 입력하세요.</div>
+                </div>
+                <div class="col-md-3">
+                    <label for="resType" class="sb-form-label">자원 유형</label>
+                    <!-- [변경점] 자원유형 변경 시 수용인원 필수 여부를 즉시 다시 체크 -->
+                    <select name="resType" id="resType" class="form-select" onchange="sbCheckCapacity()" required>
+                        <option value="ROOM">회의실</option>
+                        <option value="EQUIPMENT">장비</option>
+                        <option value="VEHICLE">차량</option>
+                    </select>
+                </div>
+
+                <!-- 2그룹: 위치 / 수량 / 수용인원 / 상태 -->
+                <div class="col-md-4">
+                    <label for="location" class="sb-form-label">위치</label>
+                    <input type="text" name="location" id="location" class="form-control"
+                           placeholder="예: 본관 3층, 지하주차장 2호기" maxlength="200">
+                </div>
+                <div class="col-md-2">
+                    <label for="quantity" class="sb-form-label">수량</label>
+                    <input type="number" name="quantity" id="quantity" class="form-control"
+                           min="0" value="1" required>
+                </div>
+                <div class="col-md-3">
+                    <!-- [변경점] 자원코드/자원명처럼 필수 표시(*) 추가는 회의실일 때만 의미가 있어서 라벨은 고정 텍스트로 두고 JS로 조건부 검증 -->
+                    <label for="capacity" class="sb-form-label">수용인원</label>
+                    <input type="number" name="capacity" id="capacity" class="form-control"
+                           min="1" placeholder="회의실인 경우 입력" onblur="sbCheckCapacity()">
+                    <div class="text-faint mt-1" style="font-size:12px" id="capacityHint">장비·차량은 비워두셔도 됩니다.</div>
+                    <!-- [추가] 회의실인데 비어있을 때 표시할 인라인 에러 -->
+                    <div class="invalid-feedback" id="eCapacity">회의실은 수용인원을 입력해야 합니다.</div>
+                </div>
+                <div class="col-md-3">
+                    <label for="resStatus" class="sb-form-label">상태</label>
+                    <select name="resStatus" id="resStatus" class="form-select">
+                        <option value="AVAILABLE" selected>사용가능</option>
+                        <option value="MAINTENANCE">점검중</option>
+                        <option value="DISABLED">사용중지</option>
+                    </select>
+                </div>
+
+                <!-- 3그룹: 비고 -->
+                <div class="col-12">
+                    <label for="remark" class="sb-form-label">비고</label>
+                    <input type="text" name="remark" id="remark" class="form-control" placeholder="필요한 설명을 입력하세요">
+                </div>
+
+                <!-- 4그룹: 담당자 -->
+                <div class="col-12">
+                    <label for="managerEmpId" class="sb-form-label">담당자</label>
+                    <select name="managerEmpId" id="managerEmpId" class="form-select">
+                        <option value="">지정 안 함</option>
+                        <option th:each="emp : ${empList}"
+                                th:value="${emp.empId}"
+                                th:text="${emp.empName} + ' (' + ${emp.posName} + ')'"></option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2 justify-content-end">
+        <a th:href="${backUrl}" class="btn btn-ghost">취소</a>
+        <button type="submit" class="btn btn-sb">
+            <i class="bi bi-check-lg"></i> 등록하기
+        </button>
+    </div>
+</form>
+
+<script th:inline="javascript">
+(function () {
+  "use strict";
+
+  window.sbCheckResCode = function () {
+    var codeEl = document.getElementById("resCode");
+    var code   = codeEl.value.trim();
+    if (!code) return;
+
+    var CHECK_URL = "/res/checkCode";
+
+    fetch(CHECK_URL + "?resCode=" + encodeURIComponent(code))
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (data.duplicate) {
+          codeEl.classList.add("is-invalid");
+          document.getElementById("eResCode").textContent = "이미 사용 중인 자원코드입니다.";
+        } else {
+          codeEl.classList.remove("is-invalid");
+        }
+      })
+      .catch(function () { console.error("자원코드 중복 체크 오류"); });
+  };
+
+  /* 자원유형이 회의실(ROOM)일 때만 수용인원을 필수로 체크.
+     resType 변경 시(onchange)와 capacity 입력 후(onblur) 양쪽에서 호출됨. */
+  window.sbCheckCapacity = function () {
+    var typeEl = document.getElementById("resType");
+    var capEl  = document.getElementById("capacity");
+    var isRoom = typeEl.value === "ROOM";
+
+    if (isRoom && !capEl.value.trim()) {
+      capEl.classList.add("is-invalid");
+      return false;
+    }
+    capEl.classList.remove("is-invalid");
+    return true;
+  };
+
+  /* ── 제출 검증 (dept/add.html과 동일한 방식) ── */
+  document.getElementById("resForm").addEventListener("submit", function (e) {
+    var valid = true;
+
+    var codeEl = document.getElementById("resCode");
+    codeEl.classList.remove("is-invalid");
+    if (!codeEl.value.trim()) {
+      codeEl.classList.add("is-invalid");
+      document.getElementById("eResCode").textContent = "자원코드를 입력하세요.";
+      valid = false;
+    } else if (codeEl.classList.contains("is-invalid")) {
+      valid = false; // 중복체크에서 이미 invalid로 표시된 경우
+    }
+
+    var nameEl = document.getElementById("resName");
+    nameEl.classList.remove("is-invalid");
+    if (!nameEl.value.trim()) {
+      nameEl.classList.add("is-invalid");
+      valid = false;
+    }
+
+    // [추가] 회의실인데 수용인원이 비어있으면 제출 막고 에러 표시
+    if (!sbCheckCapacity()) {
+      valid = false;
+    }
+
+    if (!valid) e.preventDefault();
+  });
+})();
+</script>
+</main>
+</body>
+</html>

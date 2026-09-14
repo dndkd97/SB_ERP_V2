@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+	  xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<head>
+    <title>사업자등록증 자동입력</title>
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+</head>
+<body>
+<div th:fragment="ocrModal">
+<div class="modal fade" id="ocrModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title mb-0"><i class="bi bi-camera"></i> 사업자등록증 자동입력</h5>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+            <label class="sb-form-label">이미지 업로드</label>
+            <input type="file" id="ocrFile" class="form-control" accept="image/*,.pdf">
+            <span class="field-hint">JPG · PNG · PDF</span>
+        </div>
+
+        <div id="ocrLoading" class="text-primary mb-3 d-none">
+            <span class="spinner-border spinner-border-sm"></span> 인식 중입니다...
+        </div>
+
+        <div class="row g-3" id="ocrResultFields" style="display:none;">
+          <div class="col-md-6">
+            <label class="sb-form-label">사업자등록번호</label>
+            <input type="text" class="form-control" id="ocrBizNo" placeholder="000-00-00000">
+          </div>
+          <div class="col-md-6">
+            <label class="sb-form-label">회사명</label>
+            <input type="text" class="form-control" id="ocrComName">
+          </div>
+          <div class="col-md-6">
+            <label class="sb-form-label">대표자</label>
+            <input type="text" class="form-control" id="ocrComCeo">
+          </div>
+          <div class="col-md-6">
+            <label class="sb-form-label">개업일자</label>
+            <input type="date" class="form-control" id="ocrStartDt">
+          </div>
+          <div class="col-md-12">
+            <label class="sb-form-label">
+                업종 <span class="field-hint">(OCR 인식 텍스트로 자동 매칭 · 틀리면 직접 선택)</span>
+            </label>
+            <select class="form-select" id="ocrIndustryGrpCode">
+                <option value="">-- 업종 선택 --</option>
+                <option value="C">제조업</option>
+                <option value="F">건설업</option>
+                <option value="G">도매 및 소매업</option>
+                <option value="H">운수 및 창고업</option>
+                <option value="I">숙박 및 음식점업</option>
+                <option value="J">정보통신업</option>
+                <option value="K">금융 및 보험업</option>
+                <option value="M">전문, 과학 및 기술 서비스업</option>
+                <option value="N">사업시설관리, 사업지원 및 임대 서비스업</option>
+                <option value="S">협회 및 단체, 수리 및 기타 개인 서비스업</option>
+            </select>
+            <div id="ocrIndustryRaw" class="field-hint mt-1"></div>
+          </div>
+          <div class="col-md-12">
+            <label class="sb-form-label">
+                세부 업종 <span class="field-hint">(OCR 인식 텍스트로 자동 매칭 · 틀리면 직접 선택)</span>
+            </label>
+            <select class="form-select" id="ocrIndustryCode" disabled>
+                <option value="">-- 업종을 먼저 선택하세요 --</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">취소</button>
+        <button type="button" class="btn btn-sb" id="ocrApplyBtn" disabled>
+            <i class="bi bi-check-lg"></i> 폼에 적용
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+</body>
+</html>

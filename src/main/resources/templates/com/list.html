@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{fragments/layout}">
+<head>
+    <title>회사 관리</title>
+</head>
+<body data-page="comlist">
+<main layout:fragment="content" class="sb-content"
+      th:with="kw=${param.keyword != null} ? ${param.keyword[0]} : '',
+               ic=${param.industryGrpCode != null} ? ${param.industryGrpCode[0]} : ''">
+<!-- 페이지 헤더 -->
+<div class="sb-page-head">
+    <div class="sb-page-head__txt">
+        <div class="sb-breadcrumb">
+        	조직 관리
+            <i class="bi bi-chevron-right"></i>
+            회사 관리
+            <i class="bi bi-chevron-right"></i>
+            목록
+        </div>
+        <h1>회사 관리</h1>
+        <p>등록된 회사를 조회하고 관리합니다.</p>
+    </div>
+    <div class="sb-page-head__actions">
+        <a th:href="@{/com/add}" class="btn btn-sb btn-sm">
+            <i class="bi bi-plus-lg"></i> 회사 등록
+        </a>
+    </div>
+</div>
+
+<!-- 통계 타일 (집계 데이터 연동 전까지 "-" 표시) -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+        <div class="sb-stat">
+            <div class="sb-stat__top">
+                <div class="sb-stat__ico tone-blue"><i class="bi bi-building"></i></div>
+                <div class="sb-stat__label">전체 회사</div>
+            </div>
+            <div class="sb-stat__val" id="comTotal" th:text="${stats?.comTotal ?: 0}">-</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="sb-stat">
+            <div class="sb-stat__top">
+                <div class="sb-stat__ico tone-green"><i class="bi bi-people"></i></div>
+                <div class="sb-stat__label">전체 임직원</div>
+            </div>
+            <div class="sb-stat__val" id="empTotal" th:text="${stats?.empTotal ?: 0}">-</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="sb-stat">
+            <div class="sb-stat__top">
+                <div class="sb-stat__ico tone-violet"><i class="bi bi-grid-3x3-gap"></i></div>
+                <div class="sb-stat__label">업종 수</div>
+            </div>
+            <div class="sb-stat__val" id="industTotal" th:text="${stats?.industTotal ?: 0}">-</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="sb-stat">
+            <div class="sb-stat__top">
+                <div class="sb-stat__ico tone-amber"><i class="bi bi-calendar-plus"></i></div>
+                <div class="sb-stat__label">최근 등록 회사</div>
+            </div>
+<div class="sb-stat__val" id="comLatest" style="font-size:15px;line-height:1.3" 
+                 th:text="${not #strings.isEmpty(stats?.comLatest) ? stats.comLatest : '-'}">-</div>        </div>
+    </div>
+</div>
+
+<!-- 목록 카드 -->
+<div class="sb-card">
+    <!-- 검색 / 필터 툴바 (실제 GET 검색 폼) -->
+    <form method="GET" th:action="@{/com/list}"
+          id="searchForm" class="sb-toolbar">
+        <div class="ac-wrap grow" style="max-width:460px">
+            <div class="sb-field sb-field--search" style="width:100%">
+                <i class="bi bi-search"></i>
+                <input type="text" id="keyword" name="keyword"
+                       th:value="${kw}"
+                       placeholder="회사명 또는 사업자번호로 검색"
+                       autocomplete="off" style="width:100%">
+            </div>
+            <div class="ac-list" id="acList"></div>
+        </div>
+
+		<div class="grow"></div>
+
+		<div class="sb-field">
+		    <select id="comIndustry" name="industryGrpCode"
+                    onchange="document.getElementById('pageHidden').value='1'; this.form.submit();">
+                <option value="">전체 업종</option>
+                <option value="C" th:selected="${ic == 'C'}">제조업</option>
+                <option value="F" th:selected="${ic == 'F'}">건설업</option>
+                <option value="G" th:selected="${ic == 'G'}">도매 및 소매업</option>
+                <option value="H" th:selected="${ic == 'H'}">운수 및 창고업</option>
+                <option value="I" th:selected="${ic == 'I'}">숙박 및 음식점업</option>
+                <option value="J" th:selected="${ic == 'J'}">정보통신업</option>
+                <option value="K" th:selected="${ic == 'K'}">금융 및 보험업</option>
+                <option value="M" th:selected="${ic == 'M'}">전문, 과학 및 기술 서비스업</option>
+            </select>
+		</div>
+
+		<div class="sb-field">
+		    <select class="form-select form-select-sm" style="width:auto"
+		            id="onepagelist" name="onepagelist"
+		            onchange="document.getElementById('pageHidden').value='1'; this.form.submit();">
+			    <option value="10" th:selected="${paging?.onepagelist == null or paging?.onepagelist == 10}">10개씩 보기</option>
+			    <option value="30" th:selected="${paging?.onepagelist == 30}">30개씩 보기</option>
+			    <option value="50" th:selected="${paging?.onepagelist == 50}">50개씩 보기</option>
+		    </select>
+		</div>
+
+        <button type="submit" class="btn btn-sb btn-sm">
+            <i class="bi bi-search"></i> 검색
+        </button>
+        <a th:if="${not #strings.isEmpty(kw)}" class="btn btn-ghost btn-sm" th:href="@{/com/list}">초기화</a>
+        <input type="hidden" name="page" id="pageHidden" value="1">
+    </form>
+
+    <!-- 테이블 -->
+    <div class="sb-card__body--flush">
+        <table class="sb-table">
+            <thead>
+                <tr>
+                    <th style="width:60px">번호</th>
+                    <th>회사명</th>
+                    <th style="width:90px">대표자</th>
+                    <th style="width:140px">사업자번호</th>
+                    <th>업종</th>
+                    <th class="num" style="width:110px">임직원 수</th>
+                    <th style="width:170px; text-align: center">관리</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- #lists.isEmpty(items)는 Thymeleaf 유틸리티라 items가 null이어도 예외 없이 true를 반환함 (empty 키워드와 달리 실제로 존재하는 기능) -->
+                <tr th:if="${#lists.isEmpty(items)}">
+                    <td colspan="7">
+                        <div class="sb-empty">
+                            <i class="bi bi-inbox"></i>
+                            <p>등록된 회사가 없습니다.</p>
+                        </div>
+                    </td>
+                </tr>
+
+                <tr th:each="com,status : ${items}">
+                    <td class="sb-hr-cell tnum"
+                        th:text="${(paging?.listtotal ?: 0) - (paging?.pstartno ?: 0) - status.index}"></td>
+                    <td>
+                        <div class="sb-rowuser">
+                            <span class="sb-avatar" style="border-radius:9px">
+                                <img th:if="${not #strings.isEmpty(com.comLogo)}" th:src="@{${com.comLogo}}" alt=""
+                                     style="width:100%;height:100%;object-fit:cover">
+                                <i th:unless="${not #strings.isEmpty(com.comLogo)}" class="bi bi-building"></i>
+                            </span>
+                            <div>
+                                <div class="sb-table__name" th:text="${com.comName}"></div>
+                            </div>
+                        </div>
+                    </td>
+                    <td th:text="${com.comCeo}"></td>
+                    <td class="sb-hr-cell tnum" th:text="${com.bizNo}"></td>
+                    <td>
+                        <span th:if="${com.industryGrpCode != null}" class="sb-badge sb-badge--gray"
+                              style="font-size:11.5px" th:switch="${com.industryGrpCode}">
+                            <th:block th:case="'C'">제조업</th:block>
+                            <th:block th:case="'F'">건설업</th:block>
+                            <th:block th:case="'G'">도매 및 소매업</th:block>
+                            <th:block th:case="'H'">운수 및 창고업</th:block>
+                            <th:block th:case="'I'">숙박 및 음식점업</th:block>
+                            <th:block th:case="'J'">정보통신업</th:block>
+                            <th:block th:case="'K'">금융 및 보험업</th:block>
+                            <th:block th:case="'M'">전문, 과학 및 기술 서비스업</th:block>
+                            <th:block th:case="*">기타</th:block>
+                        </span>
+                        <span th:if="${com.industryGrpCode == null}" class="text-faint">-</span>
+                    </td>
+                    <td class="num tnum">
+                        <span class="text-faint" th:text="${com.empCount}"></span>
+                    </td>
+                    <td>
+                        <div class="d-flex justify-content-end gap-1">
+                            <a class="sb-iconbtn" th:href="@{/com/detail(comId=${com.comId})}" title="상세보기">
+                                <i class="bi bi-book"></i>
+                            </a>
+                            <a class="sb-iconbtn" th:href="@{/com/edit(comId=${com.comId})}" title="수정">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <a class="sb-iconbtn" th:href="@{/dept/list(comId=${com.comId})}" title="조직도 보기">
+                                <i class="bi bi-diagram-3"></i>
+                            </a>
+                            <button type="button" class="sb-iconbtn com-del"
+                                    style="color:var(--sb-red)"
+                                    th:attr="data-id=${com.comId}, data-name=${com.comName}"
+                                    title="삭제">
+                                <i class="bi bi-trash3"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+		<div id="modalContainer"></div>
+    </div>
+
+    <!-- 페이지네이션 -->
+    <div class="d-flex align-items-center justify-content-between px-3 py-2"
+         style="border-top:1px solid var(--sb-border)">
+        <span class="text-faint" style="font-size:12.5px">
+            총 <b th:text="${paging?.listtotal ?: 0}"></b>개 회사
+        </span>
+
+        <nav th:if="${(paging?.pagetotal ?: 0) > 1}" aria-label="페이지 이동">
+            <ul class="pagination pagination-sm mb-0">
+                <li class="page-item" th:classappend="${paging.start <= 1} ? 'disabled'">
+                    <a class="page-link"
+                       th:href="@{/com/list(keyword=${kw}, industryGrpCode=${ic}, onepagelist=${paging.onepagelist}, pstartno=${paging.start - 1})}"
+                       aria-label="이전"><i class="bi bi-chevron-left"></i></a>
+                </li>
+
+                <li class="page-item" th:each="p : ${#numbers.sequence(paging.start, paging.end)}"
+                    th:classappend="${p == paging.current} ? 'active'">
+                    <a class="page-link"
+                       th:href="@{/com/list(keyword=${kw}, industryGrpCode=${ic}, onepagelist=${paging.onepagelist}, pstartno=${p})}"
+                       th:text="${p}"></a>
+                </li>
+
+                <li class="page-item" th:classappend="${paging.end >= paging.pagetotal} ? 'disabled'">
+                    <a class="page-link"
+                       th:href="@{/com/list(keyword=${kw}, industryGrpCode=${ic}, onepagelist=${paging.onepagelist}, pstartno=${paging.end + 1})}"
+                       aria-label="다음"><i class="bi bi-chevron-right"></i></a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+</div>
+
+<script th:inline="javascript">
+(function () {
+    "use strict";
+    
+    const SUGGEST_URL = "/com/suggest";
+    const DELETE_URL  = "/com/delete";
+    const LIST_URL    = "/com/list";
+ 
+    document.addEventListener("layout:ready", function () {
+    	const comTotalEl   = document.getElementById("comTotal");
+        const empTotalEl   = document.getElementById("empTotal");
+        const industTotalEl = document.getElementById("industTotal");
+        
+        const totalCom    = parseInt(comTotalEl.textContent) || 0;
+        const totalEmp    = parseInt(empTotalEl.textContent) || 0;
+        const totalIndust = parseInt(industTotalEl.textContent) || 0;
+        
+        const latestCom   = document.getElementById("comLatest").textContent;
+    	
+        SB.countUp(comTotalEl, totalCom);
+        SB.countUp(empTotalEl, totalEmp);
+        SB.countUp(industTotalEl, totalIndust);
+        
+        if(latestCom && latestCom !== "-") {
+            document.getElementById("comLatest").textContent = latestCom;
+        }
+    });
+ 
+    /* ===================== 실시간 자동완성 ===================== */
+    const kwInput = document.getElementById("keyword");
+    const acList  = document.getElementById("acList");
+    let debounceTimer = null;
+    let acIndex = -1;
+ 
+    kwInput.addEventListener("input", function () {
+        const kw = this.value.trim();
+        clearTimeout(debounceTimer);
+        if (!kw) { hideAc(); return; }
+        debounceTimer = setTimeout(() => fetchSuggest(kw), 220);
+    });
+ 
+    kwInput.addEventListener("keydown", function (e) {
+        const items = [...acList.querySelectorAll(".ac-item")];
+        if (!items.length) return;
+        if (e.key === "ArrowDown") { e.preventDefault(); acIndex = Math.min(acIndex + 1, items.length - 1); }
+        else if (e.key === "ArrowUp") { e.preventDefault(); acIndex = Math.max(acIndex - 1, 0); }
+        else if (e.key === "Enter" && acIndex >= 0) { e.preventDefault(); items[acIndex].dispatchEvent(new Event("mousedown")); return; }
+        else return;
+        items.forEach((it, i) => it.classList.toggle("active", i === acIndex));
+    });
+ 
+    document.addEventListener("click", function (e) {
+        if (!kwInput.contains(e.target) && !acList.contains(e.target)) hideAc();
+    });
+ 
+    function fetchSuggest(kw) {
+        fetch(SUGGEST_URL + "?keyword=" + encodeURIComponent(kw))
+            .then(function (res) {
+                if (!res.ok) throw new Error("network error");
+                return res.json();
+            })
+            .then(function (data) { renderAc(data, kw); })
+            .catch(hideAc);
+    }
+ 
+    function renderAc(data, kw) {
+        acList.innerHTML = "";
+        acIndex = -1;
+ 
+        if (!data || data.length === 0) {
+            acList.innerHTML = '<div class="ac-empty">일치하는 회사가 없습니다.</div>';
+            acList.classList.add("show");
+            return;
+        }
+ 
+        data.forEach(function (item) {
+            const div = document.createElement("div");
+            div.className = "ac-item";
+            div.innerHTML =
+                '<i class="bi bi-building text-faint"></i>'
+                + '<span>' + highlight(item.comName, kw) + '</span>'
+                + '<span class="ac-item__meta">' + (item.bizNo || "") + '</span>';
+ 
+            div.addEventListener("mousedown", function (e) {
+                e.preventDefault(); // blur 방지
+                kwInput.value = item.comName;
+                hideAc();
+                document.getElementById("searchForm").submit();
+            });
+ 
+            acList.appendChild(div);
+        });
+ 
+        acList.classList.add("show");
+    }
+ 
+    function highlight(text, kw) {
+        if (!kw) return text;
+        const escaped = kw.replace(/[.*+?^$\x7B\x7D()|[\]\\]/g, "\\$&");
+        return text.replace(new RegExp("(" + escaped + ")", "gi"), "<b>$1</b>");
+    }
+ 
+    function hideAc() {
+        acList.classList.remove("show");
+        acList.innerHTML = "";
+        acIndex = -1;
+    }
+ 
+    document.addEventListener("click", function (e) {
+        const delBtn = e.target.closest(".com-del");
+        if (!delBtn) return;
+ 
+        const comId = delBtn.dataset.id;
+ 
+        fetch(DELETE_URL + "?comId=" + comId)
+            .then(res => res.text())
+            .then(html => {
+                const container = document.getElementById("modalContainer");
+                container.innerHTML =
+                    '<div class="modal fade" id="deleteModal" tabindex="-1">' +
+                    '  <div class="modal-dialog"><div class="modal-content">' + html + '</div></div>' +
+                    '</div>';
+ 
+                const modalEl = document.getElementById("deleteModal");
+                const csrfInput = modalEl.querySelector("#csrfToken");
+                const modal = new bootstrap.Modal(modalEl);
+                modal.show();
+ 
+                const empPass   = modalEl.querySelector("#empPass");
+                const pwErr     = modalEl.querySelector("#delPwErr");
+                const pwErrMsg  = modalEl.querySelector("#delPwErrMsg");
+                const delYesBtn = modalEl.querySelector("#delYes");
+ 
+                setTimeout(() => empPass.focus(), 300);
+ 
+                empPass.addEventListener("input", () => {
+                    pwErr.style.display = "none";
+                    empPass.classList.remove("is-invalid");
+                });
+                empPass.addEventListener("keydown", ev => {
+                    if (ev.key === "Enter") { ev.preventDefault(); delYesBtn.click(); }
+                });
+ 
+                delYesBtn.addEventListener("click", () => {
+                    fetch(DELETE_URL, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                        body: "comId=" + encodeURIComponent(comId)
+                            + "&empPass=" + encodeURIComponent(empPass.value)
+                            + "&" + csrfInput.name + "=" + encodeURIComponent(csrfInput.value)
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            location.href = LIST_URL;
+                            return;
+                        }
+
+                        if (data.reason === "AUTH") {
+                            // 비밀번호 오류 → 모달 안 인라인 표시 (재입력 유도)
+                            pwErrMsg.textContent = data.message;
+                            pwErr.style.display = "";
+                            empPass.classList.add("is-invalid");
+                            empPass.focus();
+                        } else {
+                            // 비즈니스 규칙 위반 (예: 하위 부서 존재) → 모달 닫고 토스트로 분리 표시
+                            modal.hide();
+                            SB.toast(data.message, "warn");
+                        }
+                    })
+                    .catch(() => alert("삭제 처리 중 오류가 발생했습니다."));
+                });
+            })
+            .catch(() => alert("모달을 불러오지 못했습니다."));
+    });
+})();
+</script>
+</main>
+</body>
+</html>

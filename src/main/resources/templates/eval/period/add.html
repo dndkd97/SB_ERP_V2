@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+	xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	layout:decorate="~{fragments/layout}">
+<head>
+<title>회차 등록</title>
+</head>
+<body>
+	<section class="eval_period_add sb-content" layout:fragment="content">
+
+		<!-- 페이지 헤더 -->
+		<div class="sb-page-head">
+			<div class="sb-page-head__txt">
+				<div class="sb-breadcrumb">
+					<a th:href="@{/}">홈</a> <i class="bi bi-chevron-right"></i> <a
+						th:href="@{/eval/period/list}">회차 관리</a> <i
+						class="bi bi-chevron-right"></i> 회차 등록
+				</div>
+				<h1>회차 등록</h1>
+				<p>새 인사평가 회차를 등록합니다.</p>
+			</div>
+			<div class="sb-page-head__actions">
+				<a th:href="@{/eval/period/list}" class="btn btn-ghost btn-sm">
+					<i class="bi bi-arrow-left"></i> 목록으로
+				</a>
+			</div>
+		</div>
+
+		<!-- Flash 메시지 -->
+		<div th:if="${errorMsg}" class="sb-alert sb-alert--danger mb-3">
+			<i class="bi bi-exclamation-circle me-2"></i> <span
+				th:text="${errorMsg}">메시지</span>
+		</div>
+
+		<div class="sb-card mb-3">
+			<div class="sb-card__head">
+				<h2>
+					<i class="bi bi-calendar-plus me-2 text-soft"></i> 회차 정보
+				</h2>
+			</div>
+			<div class="sb-card__body">
+
+				<form th:action="@{/eval/period/add}" method="post"
+					onsubmit="return checkForm()">
+
+					<div class="row g-3">
+						<div class="col-md-4">
+							<label for="evalYear" class="sb-form-label">평가 연도 <span>*</span></label>
+							<select class="form-select" id="evalYear" name="evalYear"
+								required>
+								<option value="">선택하세요</option>
+								<option th:each="y : ${#numbers.sequence(2024, 2028)}"
+									th:value="${y}" th:text="${y} + '년'"
+									th:selected="${prevInput != null and prevInput.evalYear == y}">2026년</option>
+							</select>
+						</div>
+
+						<div class="col-md-4">
+							<label for="evalTerm" class="sb-form-label">평가 반기 <span>*</span></label>
+							<select class="form-select" id="evalTerm" name="evalTerm"
+								required>
+								<option value="">선택하세요</option>
+								<option value="H1"
+									th:selected="${prevInput != null and prevInput.evalTerm == 'H1'}">상반기
+									(H1)</option>
+								<option value="H2"
+									th:selected="${prevInput != null and prevInput.evalTerm == 'H2'}">하반기
+									(H2)</option>
+								<option value="ANNUAL"
+									th:selected="${prevInput != null and prevInput.evalTerm == 'ANNUAL'}">연간
+									(ANNUAL)</option>
+							</select>
+						</div>
+
+						<div class="col-md-4">
+							<label class="sb-form-label">중복 확인</label>
+							<div class="tDuplicate duplicateChkBox">선택 후 확인됩니다</div>
+						</div>
+
+						<div class="col-12">
+							<label for="title" class="sb-form-label">회차 제목 <span>*</span></label>
+							<input type="text" class="form-control" id="title" name="title"
+								th:value="${prevInput != null} ? ${prevInput.title} : ''"
+								placeholder="예: 2026년 상반기 정기평가" maxlength="100" required />
+						</div>
+
+						<div class="col-md-6">
+							<label for="startDate" class="sb-form-label">시작일 <span>*</span></label>
+							<input type="date" class="form-control" id="startDate"
+								name="startDate"
+								th:value="${prevInput != null} ? ${prevInput.startDate} : ''"
+								required />
+						</div>
+
+						<div class="col-md-6">
+							<label for="endDate" class="sb-form-label">종료일 <span>*</span></label>
+							<input type="date" class="form-control" id="endDate"
+								name="endDate"
+								th:value="${prevInput != null} ? ${prevInput.endDate} : ''"
+								required />
+						</div>
+					</div>
+
+					<div class="sb-form-actions">
+						<a th:href="@{/eval/period/list}" class="btn btn-ghost">취소</a>
+						<button type="submit" class="btn btn-sb" id="submitBtn">
+							<i class="bi bi-check-lg"></i> 등록
+						</button>
+					</div>
+				</form>
+			</div>
+		</div>
+
+	</section>
+
+	<th:block layout:fragment="script">
+		<script th:inline="javascript">
+    const CTX = /*[[@{/}]]*/ '/';
+
+    window.addEventListener("load", function() {
+        const evalYear = document.getElementById("evalYear");
+        const evalTerm = document.getElementById("evalTerm");
+        const startDate = document.getElementById("startDate");
+        const endDate = document.getElementById("endDate");
+        const target = document.querySelector(".tDuplicate");
+        const submitBtn = document.getElementById("submitBtn");
+
+        let duplicateOk = true;  // 초기엔 통과 (양쪽 값 없으니 검사 안 함)
+
+        function updateSubmit() {
+            submitBtn.disabled = !duplicateOk;
+        }
+
+        function checkDuplicate() {
+            const year = evalYear.value;
+            const term = evalTerm.value;
+
+            if (year === "" || term === "") {
+                target.textContent = "연도·반기를 선택하세요";
+                target.className = "tDuplicate duplicateChkBox";
+                duplicateOk = true;
+                updateSubmit();
+                return;
+            }
+
+            fetch(CTX + "eval/period/checkDuplicate?evalYear=" + encodeURIComponent(year)
+                    + "&evalTerm=" + encodeURIComponent(term))
+                .then(res => res.json())
+                .then(data => {
+                    if (data.duplicate) {
+                        target.textContent = "이미 등록된 회차입니다";
+                        target.className = "tDuplicate duplicateChkBox sb-badge--red";
+                        duplicateOk = false;
+                    } else {
+                        target.textContent = "등록 가능한 회차입니다";
+                        target.className = "tDuplicate duplicateChkBox sb-badge--green";
+                        duplicateOk = true;
+                    }
+                    updateSubmit();
+                })
+                .catch(err => {
+                    target.textContent = "서버 오류입니다";
+                    target.className = "tDuplicate duplicateChkBox sb-badge--cyan";
+                    duplicateOk = false;
+                    updateSubmit();
+                });
+        }
+
+        evalYear.addEventListener("change", checkDuplicate);
+        evalTerm.addEventListener("change", checkDuplicate);
+    });
+
+    function checkForm() {
+        const startDate = document.getElementById("startDate").value;
+        const endDate = document.getElementById("endDate").value;
+
+        if (startDate && endDate && startDate > endDate) {
+            alert("종료일은 시작일 이후여야 합니다.");
+            return false;
+        }
+        return true;
+    }
+</script>
+	</th:block>
+</body>
+</html>

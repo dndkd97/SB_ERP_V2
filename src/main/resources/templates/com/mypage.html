@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      layout:decorate="~{fragments/layout}">
+<head>
+    <title>내 회사 정보 · SBerp</title>
+</head>
+<body data-page="commypage">
+<main layout:fragment="content" class="sb-content">
+    <!-- 페이지 헤더 -->
+    <div class="sb-page-head">
+        <div class="sb-page-head__txt">
+            <div class="sb-breadcrumb">
+                <a th:href="@{/}">홈</a>
+                <i class="bi bi-chevron-right"></i>
+                <a th:href="@{/com/my}">회사 정보</a>
+                <i class="bi bi-chevron-right"></i>
+                내 회사
+            </div>
+            <h1>내 회사 정보</h1>
+            <p>소속 회사의 기본 정보와 조직도를 확인합니다.</p>
+        </div>
+        <div class="sb-page-head__actions" sec:authorize="hasAuthority('ROOT') or hasRole('ROLE_ADMIN')">
+            <a th:href="@{/com/edit(comId=${com.comId})}" class="btn btn-sb btn-sm">
+                <i class="bi bi-pencil"></i> 수정하기
+            </a>
+        </div>
+    </div>
+
+    <!-- 회사 요약 카드 -->
+    <div class="sb-card mc-summary mb-3">
+        <div class="mc-logo">
+            <img th:if="${not #strings.isEmpty(com.comLogo)}" th:src="@{${com.comLogo}}" th:alt="${com.comName}">
+            <span th:unless="${not #strings.isEmpty(com.comLogo)}" th:text="${#strings.substring(com.comName, 0, 1)}"></span>
+        </div>
+        <div class="mc-summary__main">
+            <div class="mc-summary__name" th:text="${com.comName}"></div>
+            <div class="mc-summary__sub" th:text="'대표 ' + ${com.comCeo}"></div>
+        </div>
+        <div class="mc-stat-divider"></div>
+        <div class="mc-stat-col">
+            <div class="mc-stat-col__label">총 임직원</div>
+            <div class="mc-stat-col__val" th:text="${stats.empTotal} + '명'"></div>
+        </div>
+        <div class="mc-stat-col">
+            <div class="mc-stat-col__label">본부</div>
+            <div class="mc-stat-col__val" th:text="${stats.dept0Total}"></div>
+        </div>
+        <div class="mc-stat-col">
+            <div class="mc-stat-col__label">부서/팀</div>
+            <div class="mc-stat-col__val" th:text="${stats.dept1Total}"></div>
+        </div>
+    </div>
+
+    <!-- 본문 2단 구성 -->
+    <div class="row g-3">
+
+        <!-- 좌측 : 회사 기본 정보 -->
+        <div class="col-lg-5">
+            <div class="sb-card h-100">
+                <div class="sb-card__head">
+                    <h2>회사 기본 정보</h2>
+                </div>
+                <div class="sb-card__body">
+
+                    <div class="mc-info-row">
+                        <div class="mc-info-icon"><i class="bi bi-building"></i></div>
+                        <div>
+                            <div class="mc-info-label">회사명</div>
+                            <div class="mc-info-val" th:text="${com.comName}"></div>
+                        </div>
+                    </div>
+
+                    <div class="mc-info-row">
+                        <div class="mc-info-icon"><i class="bi bi-person-badge"></i></div>
+                        <div>
+                            <div class="mc-info-label">대표자</div>
+                            <div class="mc-info-val" th:text="${com.comCeo}"></div>
+                        </div>
+                    </div>
+
+                    <div class="mc-info-row">
+                        <div class="mc-info-icon"><i class="bi bi-card-text"></i></div>
+                        <div>
+                            <div class="mc-info-label">사업자등록번호</div>
+                            <div class="mc-info-val" th:text="${com.bizNo}"></div>
+                        </div>
+                    </div>
+
+                    <div class="mc-info-row">
+                        <div class="mc-info-icon"><i class="bi bi-telephone"></i></div>
+                        <div>
+                            <div class="mc-info-label">대표 전화</div>
+                            <div class="mc-info-val" th:text="${com.comTel}"></div>
+                        </div>
+                    </div>
+
+                    <div class="mc-info-row">
+                        <div class="mc-info-icon"><i class="bi bi-tag"></i></div>
+                        <div>
+                            <div class="mc-info-label">업종</div>
+                            <div class="mc-info-val">
+                                <span th:switch="${com.industryGrpCode}">
+                                    <th:block th:case="'C'">제조업</th:block>
+                                    <th:block th:case="'F'">건설업</th:block>
+                                    <th:block th:case="'G'">도매 및 소매업</th:block>
+                                    <th:block th:case="'H'">운수 및 창고업</th:block>
+                                    <th:block th:case="'I'">숙박 및 음식점업</th:block>
+                                    <th:block th:case="'J'">정보통신업</th:block>
+                                    <th:block th:case="'K'">금융 및 보험업</th:block>
+                                    <th:block th:case="'M'">전문, 과학 및 기술 서비스업</th:block>
+                                    <th:block th:case="*">미분류</th:block>
+                                </span>
+                                <span class="text-faint" style="font-weight:500"
+                                      th:text="'(' + ${com.industryCode} + ')'"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 우측 : 조직도 (읽기전용) -->
+        <div class="col-lg-7">
+            <div class="sb-card h-100">
+                <div class="sb-card__head">
+                    <h2>조직도</h2>
+                </div>
+                <div class="sb-card__body--flush">
+                    <div class="mc-org">
+                        <div th:each="dept : ${deptList}"
+                             th:with="curTone=${dept.depth == 0} ? 'blue' : (${dept.depth == 1} ? 'green' : (${dept.depth == 2} ? 'amber' : 'cyan'))"
+                             th:class="'mc-org-row depth-' + ${dept.depth} + ' tone-' + ${curTone}">
+                            <div class="mc-org-icon">
+                                <i th:class="'bi ' + (${dept.depth == 1} ? 'bi-diagram-3-fill' : 'bi-people-fill')"></i>
+                            </div>
+                            <div class="mc-org-name">
+                                <span th:text="${dept.deptName}"></span>
+                                <span th:if="${not #strings.isEmpty(dept.leaderName)}" class="mc-org-lead"
+                                      th:text="${dept.leaderName} + ' 부서장'"></span>
+                            </div>
+                            <span class="sb-badge sb-badge--gray mc-org-count" th:text="${dept.empCount} + '명'"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</main>
+</body>
+</html>

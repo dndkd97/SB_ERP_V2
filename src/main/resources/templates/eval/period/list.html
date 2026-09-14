@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+	xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+	xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	layout:decorate="~{fragments/layout}">
+<head>
+<title>인사평가 회차 관리</title>
+</head>
+<body data-page="evalperiodlist">
+	<section class="eval_period_list sb-content" layout:fragment="content">
+
+		<!-- 페이지 헤더 -->
+		<div class="sb-page-head">
+			<div class="sb-page-head__txt">
+				<div class="sb-breadcrumb">
+					<a th:href="@{/}">홈</a> <i class="bi bi-chevron-right"></i> 인사평가 <i
+						class="bi bi-chevron-right"></i> 회차 관리
+				</div>
+				<h1>인사평가 회차 관리</h1>
+				<p>정기 인사평가 회차를 등록·수정하고, 상태를 관리합니다.</p>
+			</div>
+			<div class="sb-page-head__actions">
+				<a class="btn btn-sb btn-sm" th:href="@{/eval/period/add}"> <i
+					class="bi bi-plus-lg"></i> 회차 등록
+				</a>
+			</div>
+		</div>
+
+		<!-- 메시지 -->
+		<div th:if="${successMsg}" class="sb-alert sb-alert--success mb-3">
+			<i class="bi bi-check-circle me-2"></i> <span th:text="${successMsg}">메시지</span>
+		</div>
+		<div th:if="${errorMsg}" class="sb-alert sb-alert--danger mb-3">
+			<i class="bi bi-exclamation-circle me-2"></i> <span
+				th:text="${errorMsg}">메시지</span>
+		</div>
+		
+		<!-- 상태별 통계 블록 -->
+		<div class="row g-3 mb-4">
+			<div class="col-6 col-lg-3 col-xl">
+				<div class="sb-stat">
+					<div class="sb-stat__top">
+						<div class="sb-stat__ico tone-amber">
+							<i class="bi bi-hourglass"></i>
+						</div>
+						<div class="sb-stat__label">준비</div>
+					</div>
+					<div class="sb-stat__val" th:text="${stats['READY']} ?: 0">0</div>
+				</div>
+			</div>
+			<div class="col-6 col-lg-3 col-xl">
+				<div class="sb-stat">
+					<div class="sb-stat__top">
+						<div class="sb-stat__ico tone-green">
+							<i class="bi bi-play-circle"></i>
+						</div>
+						<div class="sb-stat__label">진행 중</div>
+					</div>
+					<div class="sb-stat__val" th:text="${stats['OPEN']} ?: 0">0</div>
+				</div>
+			</div>
+			<div class="col-6 col-lg-3 col-xl">
+				<div class="sb-stat">
+					<div class="sb-stat__top">
+						<div class="sb-stat__ico tone-red">
+							<i class="bi bi-stop-circle"></i>
+						</div>
+						<div class="sb-stat__label">마감</div>
+					</div>
+					<div class="sb-stat__val" th:text="${stats['CLOSED']} ?: 0">0</div>
+				</div>
+			</div>
+			<div class="col-6 col-lg-3 col-xl">
+				<div class="sb-stat">
+					<div class="sb-stat__top">
+						<div class="sb-stat__ico tone-red">
+							<i class="bi bi-exclamation-triangle"></i>
+						</div>
+						<div class="sb-stat__label">생성 실패</div>
+					</div>
+					<div class="sb-stat__val"
+						th:text="${stats['REPORTING_FAILED']} ?: 0">0</div>
+				</div>
+			</div>
+			<div class="col-6 col-lg-3 col-xl">
+				<div class="sb-stat">
+					<div class="sb-stat__top">
+						<div class="sb-stat__ico tone-blue">
+							<i class="bi bi-cpu"></i>
+						</div>
+						<div class="sb-stat__label">AI 리포트</div>
+					</div>
+					<div class="sb-stat__val" th:text="${stats['REPORTED']} ?: 0">0</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- 목록 카드 -->
+		<div class="sb-card">
+			<!-- 검색 툴바 -->
+			<form th:action="@{/eval/period/list}" method="get"
+				class="sb-toolbar">
+				<div class="sb-field">
+					<label for="evalYear" class="blind">연도</label> <select
+						id="evalYear" name="evalYear">
+						<option value="">전체 연도</option>
+						<option th:each="y : ${#numbers.sequence(2024, 2028)}"
+							th:value="${y}" th:text="${y} + '년'"
+							th:selected="${search.evalYear != null and search.evalYear == y}">2026년</option>
+					</select>
+				</div>
+
+				<div class="sb-field">
+					<label for="evalTerm" class="blind">반기</label> <select
+						id="evalTerm" name="evalTerm">
+						<option value="">전체 반기</option>
+						<option value="H1" th:selected="${search.evalTerm == 'H1'}">상반기</option>
+						<option value="H2" th:selected="${search.evalTerm == 'H2'}">하반기</option>
+						<option value="ANNUAL"
+							th:selected="${search.evalTerm == 'ANNUAL'}">연간</option>
+					</select>
+				</div>
+
+				<div class="sb-field">
+					<label for="periodStatus" class="blind">상태</label> <select
+						id="periodStatus" name="periodStatus">
+						<option value="">전체 상태</option>
+						<option value="READY"
+							th:selected="${search.periodStatus == 'READY'}">준비</option>
+						<option value="OPEN"
+							th:selected="${search.periodStatus == 'OPEN'}">진행중</option>
+						<option value="CLOSED"
+							th:selected="${search.periodStatus == 'CLOSED'}">마감</option>
+						<option value="REPORTING_FAILED"
+							th:selected="${search.periodStatus == 'REPORTING_FAILED'}">생성 실패</option>
+						<option value="REPORTED"
+							th:selected="${search.periodStatus == 'REPORTED'}">AI 리포트</option>
+					</select>
+				</div>
+
+				<button type="submit" class="btn btn-sb btn-sm">검색</button>
+				<a th:href="@{/eval/period/list}" class="btn btn-ghost btn-sm">초기화</a>
+			</form>
+
+			<!-- 빈 상태 -->
+			<div th:if="${#lists.isEmpty(periodList)}" class="sb-empty"
+				style="padding: 60px 20px">
+				<i class="bi bi-calendar-x"></i>
+				<p>
+					등록된 회차가 없습니다.<br>'회차 등록' 버튼으로 새 회차를 만드세요.
+				</p>
+			</div>
+
+			<!-- 목록 -->
+			<div th:unless="${#lists.isEmpty(periodList)}"
+				class="sb-card__body--flush">
+				<table class="sb-table">
+					<thead>
+						<tr>
+							<th style="width: 100px">연도/반기</th>
+							<th>제목</th>
+							<th style="width: 220px">기간</th>
+							<th style="width: 110px">상태</th>
+							<th style="width: 100px" class="num"></th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr th:each="period : ${periodList}">
+							<td><span class="sb-badge sb-badge--gray"> <span
+									th:text="${period.evalYear}">2026</span> <span
+									th:text="${period.evalTerm}">H1</span>
+							</span></td>
+							<td><a
+								th:href="@{/eval/period/detail(periodId=${period.periodId})}"
+								class="sb-table__name" th:text="${period.title}">2026년 상반기
+									정기평가</a></td>
+							<td class="tnum text-faint"><span
+								th:text="${period.startDate}">2026-01-01</span> - <span
+								th:text="${period.endDate}">2026-06-30</span></td>
+							<td>
+								<span th:switch="${period.periodStatus}">
+									<span th:case="'READY'" class="sb-badge sb-badge--amber">
+									<span class="pip"></span>준비
+								</span>
+								<span th:case="'OPEN'" class="sb-badge sb-badge--green">
+									<span class="pip"></span>진행중
+								</span>
+								<span th:case="'CLOSED'" class="sb-badge sb-badge--red">
+									<span class="pip"></span>마감
+								</span>
+								<span th:case="'REPORTING'" class="sb-badge sb-badge--violet">
+									<span class="pip"></span>AI 생성 중
+								</span>
+								<span th:case="'REPORTING_FAILED'" class="sb-badge sb-badge--red">
+									<span class="pip"></span>생성 실패
+								</span>
+								<span th:case="'REPORTED'" class="sb-badge sb-badge--blue">
+									<span class="pip"></span>AI 리포트</span>
+								</span>
+							</td>
+							<td class="num">
+								<div class="d-flex justify-content-end gap-1">
+									<a
+										th:href="@{/eval/period/detail(periodId=${period.periodId})}"
+										class="sb-iconbtn"
+										style="width: 30px; height: 30px; font-size: 14px"
+										title="상세보기"> <i class="bi bi-eye"></i>
+									</a> <a th:href="@{/eval/period/edit(periodId=${period.periodId})}"
+										class="sb-iconbtn"
+										style="width: 30px; height: 30px; font-size: 14px"
+										title="정보 수정"> <i class="bi bi-pencil"></i>
+									</a>
+								</div>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</div>
+
+	</section>
+</body>
+</html>

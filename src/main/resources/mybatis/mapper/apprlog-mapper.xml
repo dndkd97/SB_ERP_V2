@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sb.erp.dao.ApprLogMapper">
+	
+	<resultMap id="ApprLogMap" type="ApprLogDto">
+		<id property="logId" column="log_id"/>
+		<result property="docId" column="doc_id"/>
+		<result property="oriEmpId" column="ori_emp_id"/>
+		<result property="actEmpId" column="act_emp_id"/>
+		<result property="perEmpId" column="per_emp_id"/>
+		<result property="createdAt" column="created_at"/>
+	</resultMap>
+
+	<!-- 위임 승인 로그 -->
+	<insert id="insertLog" parameterType="ApprLogDto">
+		<selectKey keyProperty="logId" resultType="int" order="BEFORE">
+			select appr_log_seq.nextval from dual
+		</selectKey>
+		insert into appr_log(
+			log_id,
+			doc_id,
+			ori_emp_id,
+			act_emp_id,
+			per_emp_id
+		) values (
+			#{logId},
+			#{docId},
+			#{oriEmpId},
+			#{actEmpId},
+			#{perEmpId}
+		)
+	</insert>
+	
+	<!-- 문서별 위임 로그 조회 -->
+	<select id="selectLogsByDocId" parameterType="int" resultType="ApprLogDto">
+		select
+			l.log_id,
+			l.doc_id,
+			l.created_at,
+			eo.emp_name as oriEmpName,
+			ea.emp_name as actEmpName,
+			ep.emp_name as perEmpName
+		from
+			appr_log l
+		join
+			employee eo on l.ori_emp_id = eo.emp_id
+		join
+			employee ea on l.act_emp_id = ea.emp_id
+		join
+			employee ep on l.per_emp_id = ep.emp_id
+		where
+			l.doc_id = #{docId}
+		order by
+			l.created_at asc
+	</select>
+	
+</mapper>

@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{fragments/layout}">
+<head>
+    <title>시스템관리자 대시보드</title>
+    <link rel="stylesheet" th:href="@{/css/dashboard-sysadmin.css}">
+</head>
+<body data-page="dashboard-sysadmin">
+<div layout:fragment="content">
+
+    <!-- ==========================================================
+         TODO: 시스템관리자 대시보드 - 전부 하드코딩 상태입니다.
+         추후 SysAdminController + Mapper 연동 시
+         member_account(계정) / login_history / system_log /
+         server_status / backup_history 테이블 조회 결과로 교체 예정
+         ========================================================== -->
+
+    <div class="sb-page-head db-page-head--sticky">
+        <div class="sb-page-head__txt">
+            <h1>시스템관리자 대시보드</h1>
+            <p>계정 · 서버 · 보안 상태를 관리하세요 · <span th:text="${#temporals.format(today, 'yyyy년 MM월 dd일 (E)')}">2026년 07월 09일</span></p>
+        </div>
+        <div class="sb-page-head__actions">
+            <a href="#" class="btn btn-sb-soft btn-sm"><i class="bi bi-shield-lock"></i>&nbsp;권한 관리</a>
+            <a href="#" class="btn btn-sb btn-sm"><i class="bi bi-terminal"></i>&nbsp;시스템 로그</a>
+        </div>
+    </div>
+
+    <!-- 시스템 통계 카드 -->
+    <div class="db-stat-grid mb-3">
+        <div class="sb-stat">
+            <div class="sb-stat__top">
+                <span class="sb-stat__ico tone-blue"><i class="bi bi-person-vcard-fill"></i></span>
+                <span class="sb-stat__label">전체 계정</span>
+            </div>
+            <div class="sb-stat__val">256<span style="font-size:14px;font-weight:650;">개</span></div>
+            <span class="sb-stat__delta flat"><i class="bi bi-dash"></i>활성 248 · 잠금 8</span>
+        </div>
+        <div class="sb-stat">
+            <div class="sb-stat__top">
+                <span class="sb-stat__ico tone-cyan"><i class="bi bi-box-arrow-in-right"></i></span>
+                <span class="sb-stat__label">오늘 로그인 시도</span>
+            </div>
+            <div class="sb-stat__val">612<span style="font-size:14px;font-weight:650;">건</span></div>
+            <span class="sb-stat__delta down"><i class="bi bi-arrow-down-short"></i>실패 14건</span>
+        </div>
+        <div class="sb-stat">
+            <div class="sb-stat__top">
+                <span class="sb-stat__ico tone-red"><i class="bi bi-exclamation-octagon-fill"></i></span>
+                <span class="sb-stat__label">미해결 오류</span>
+            </div>
+            <div class="sb-stat__val">3<span style="font-size:14px;font-weight:650;">건</span></div>
+            <span class="sb-stat__delta up"><i class="bi bi-arrow-up-short"></i>심각 1 · 경고 2</span>
+        </div>
+        <div class="sb-stat">
+            <div class="sb-stat__top">
+                <span class="sb-stat__ico tone-violet"><i class="bi bi-cpu-fill"></i></span>
+                <span class="sb-stat__label">서버 평균 CPU</span>
+            </div>
+            <div class="sb-stat__val">42<span style="font-size:14px;font-weight:650;">%</span></div>
+            <span class="sb-stat__delta flat"><i class="bi bi-dash"></i>4대 중 정상 4대</span>
+        </div>
+        <div class="sb-stat">
+            <div class="sb-stat__top">
+                <span class="sb-stat__ico tone-amber"><i class="bi bi-hdd-network-fill"></i></span>
+                <span class="sb-stat__label">DB 커넥션풀 사용률</span>
+            </div>
+            <div class="sb-stat__val">58<span style="font-size:14px;font-weight:650;">%</span></div>
+            <span class="sb-stat__delta flat"><i class="bi bi-dash"></i>58 / 100</span>
+        </div>
+        <div class="sb-stat">
+            <div class="sb-stat__top">
+                <span class="sb-stat__ico tone-green"><i class="bi bi-cloud-check-fill"></i></span>
+                <span class="sb-stat__label">최근 백업</span>
+            </div>
+            <div class="sb-stat__val" style="font-size:19px;">오늘 03:00</div>
+            <span class="sb-stat__delta up"><i class="bi bi-check2"></i>정상 완료</span>
+        </div>
+    </div>
+
+    <div class="sysadmin-grid">
+
+        <!-- 권한 그룹별 계정 현황 -->
+        <div class="sb-card sys-card sys-card--accounts">
+            <div class="sb-card__head">
+                <h2>권한 그룹별 계정 현황</h2>
+                <div class="right"><a href="#" class="btn btn-sb-soft btn-sm">계정 관리 <i class="bi bi-arrow-right"></i></a></div>
+            </div>
+            <div class="sb-card__body sb-card__body--flush">
+                <div class="table-responsive">
+                <table class="sb-table">
+                    <thead>
+                        <tr>
+                            <th>권한 그룹</th>
+                            <th>계정 수</th>
+                            <th>최근 로그인</th>
+                            <th>잠금 계정</th>
+                            <th>상태</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="sb-table__name">시스템관리자</td>
+                            <td>3명</td>
+                            <td class="text-soft">10분 전</td>
+                            <td>0명</td>
+                            <td><span class="sb-badge sb-badge--green"><span class="pip"></span>정상</span></td>
+                        </tr>
+                        <tr>
+                            <td class="sb-table__name">관리자(인사/운영)</td>
+                            <td>6명</td>
+                            <td class="text-soft">42분 전</td>
+                            <td>0명</td>
+                            <td><span class="sb-badge sb-badge--green"><span class="pip"></span>정상</span></td>
+                        </tr>
+                        <tr>
+                            <td class="sb-table__name">임원진</td>
+                            <td>9명</td>
+                            <td class="text-soft">2시간 전</td>
+                            <td>0명</td>
+                            <td><span class="sb-badge sb-badge--green"><span class="pip"></span>정상</span></td>
+                        </tr>
+                        <tr>
+                            <td class="sb-table__name">일반 사용자</td>
+                            <td>238명</td>
+                            <td class="text-soft">방금 전</td>
+                            <td>8명</td>
+                            <td><span class="sb-badge sb-badge--amber"><span class="pip"></span>잠금 확인 필요</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 시스템 로그 -->
+        <div class="sb-card sys-card sys-card--log">
+            <div class="sb-card__head">
+                <h2>최근 시스템 로그</h2>
+                <div class="right"><a href="#" class="btn btn-sb-soft btn-sm">전체보기</a></div>
+            </div>
+            <div class="sb-card__body sb-card__body--flush">
+                <div class="db-row">
+                    <span class="db-row__icon tone-red"><i class="bi bi-x-octagon-fill"></i></span>
+                    <div class="db-row__main">
+                        <div class="db-row__title"><span class="txt">결재 API 응답 지연 (Timeout)</span></div>
+                        <div class="db-row__meta">WEB01 · 07-09 09:14</div>
+                    </div>
+                    <span class="db-row__side sb-badge sb-badge--red">심각</span>
+                </div>
+                <div class="db-row">
+                    <span class="db-row__icon tone-amber"><i class="bi bi-exclamation-triangle-fill"></i></span>
+                    <div class="db-row__main">
+                        <div class="db-row__title"><span class="txt">Redis 세션 캐시 재연결 발생</span></div>
+                        <div class="db-row__meta">REDIS01 · 07-09 07:52</div>
+                    </div>
+                    <span class="db-row__side sb-badge sb-badge--amber">경고</span>
+                </div>
+                <div class="db-row">
+                    <span class="db-row__icon tone-amber"><i class="bi bi-exclamation-triangle-fill"></i></span>
+                    <div class="db-row__main">
+                        <div class="db-row__title"><span class="txt">파일 업로드 저장소 용량 80% 도달</span></div>
+                        <div class="db-row__meta">STORAGE01 · 07-08 22:10</div>
+                    </div>
+                    <span class="db-row__side sb-badge sb-badge--amber">경고</span>
+                </div>
+                <div class="db-row">
+                    <span class="db-row__icon tone-blue"><i class="bi bi-arrow-repeat"></i></span>
+                    <div class="db-row__main">
+                        <div class="db-row__title"><span class="txt">배치 스케줄러 정기 실행 완료</span></div>
+                        <div class="db-row__meta">BATCH01 · 07-09 03:00</div>
+                    </div>
+                    <span class="db-row__side sb-badge sb-badge--gray">정보</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 서버/인프라 상태 -->
+        <div class="sb-card sys-card sys-card--servers">
+            <div class="sb-card__head">
+                <h2>서버 · 인프라 상태</h2>
+            </div>
+            <div class="sb-card__body">
+                <div class="sys-server-grid">
+                    <div class="sys-server">
+                        <div class="sys-server__head">
+                            <span class="sys-server__name"><i class="bi bi-hdd-rack-fill"></i>&nbsp;WEB01</span>
+                            <span class="sb-badge sb-badge--green"><span class="pip"></span>정상</span>
+                        </div>
+                        <div class="sys-server__gauge">
+                            <span class="lbl">CPU</span>
+                            <div class="sb-progress"><span style="width:38%;"></span></div>
+                            <span class="val">38%</span>
+                        </div>
+                        <div class="sys-server__gauge">
+                            <span class="lbl">MEM</span>
+                            <div class="sb-progress"><span style="width:61%;background:var(--sb-violet);"></span></div>
+                            <span class="val">61%</span>
+                        </div>
+                        <span class="sys-server__uptime">가동시간 42일 6시간</span>
+                    </div>
+                    <div class="sys-server">
+                        <div class="sys-server__head">
+                            <span class="sys-server__name"><i class="bi bi-hdd-rack-fill"></i>&nbsp;WEB02</span>
+                            <span class="sb-badge sb-badge--green"><span class="pip"></span>정상</span>
+                        </div>
+                        <div class="sys-server__gauge">
+                            <span class="lbl">CPU</span>
+                            <div class="sb-progress"><span style="width:35%;"></span></div>
+                            <span class="val">35%</span>
+                        </div>
+                        <div class="sys-server__gauge">
+                            <span class="lbl">MEM</span>
+                            <div class="sb-progress"><span style="width:58%;background:var(--sb-violet);"></span></div>
+                            <span class="val">58%</span>
+                        </div>
+                        <span class="sys-server__uptime">가동시간 42일 6시간</span>
+                    </div>
+                    <div class="sys-server">
+                        <div class="sys-server__head">
+                            <span class="sys-server__name"><i class="bi bi-database-fill"></i>&nbsp;DB01</span>
+                            <span class="sb-badge sb-badge--amber"><span class="pip"></span>주의</span>
+                        </div>
+                        <div class="sys-server__gauge">
+                            <span class="lbl">CPU</span>
+                            <div class="sb-progress"><span style="width:67%;background:var(--sb-amber);"></span></div>
+                            <span class="val">67%</span>
+                        </div>
+                        <div class="sys-server__gauge">
+                            <span class="lbl">Conn</span>
+                            <div class="sb-progress"><span style="width:58%;background:var(--sb-cyan);"></span></div>
+                            <span class="val">58%</span>
+                        </div>
+                        <span class="sys-server__uptime">가동시간 128일 3시간</span>
+                    </div>
+                    <div class="sys-server">
+                        <div class="sys-server__head">
+                            <span class="sys-server__name"><i class="bi bi-lightning-charge-fill"></i>&nbsp;REDIS01</span>
+                            <span class="sb-badge sb-badge--green"><span class="pip"></span>정상</span>
+                        </div>
+                        <div class="sys-server__gauge">
+                            <span class="lbl">MEM</span>
+                            <div class="sb-progress"><span style="width:29%;background:var(--sb-violet);"></span></div>
+                            <span class="val">29%</span>
+                        </div>
+                        <div class="sys-server__gauge">
+                            <span class="lbl">Hit</span>
+                            <div class="sb-progress"><span style="width:94%;"></span></div>
+                            <span class="val">94%</span>
+                        </div>
+                        <span class="sys-server__uptime">가동시간 42일 6시간</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 보안 이벤트 -->
+        <div class="sb-card sys-card sys-card--security">
+            <div class="sb-card__head">
+                <h2>보안 이벤트</h2>
+                <div class="right"><a href="#" class="btn btn-sb-soft btn-sm">전체보기</a></div>
+            </div>
+            <div class="sb-card__body sb-card__body--flush">
+                <div class="db-row">
+                    <span class="db-row__icon tone-red"><i class="bi bi-shield-exclamation"></i></span>
+                    <div class="db-row__main">
+                        <div class="db-row__title"><span class="txt">동일 계정 로그인 실패 5회 이상</span></div>
+                        <div class="db-row__meta">계정 khj**** · IP 121.xxx.xx.44 · 07-09 08:40</div>
+                    </div>
+                    <span class="db-row__side sb-badge sb-badge--red">확인필요</span>
+                </div>
+                <div class="db-row">
+                    <span class="db-row__icon tone-amber"><i class="bi bi-geo-alt-fill"></i></span>
+                    <div class="db-row__main">
+                        <div class="db-row__title"><span class="txt">등록되지 않은 국가에서 접속 시도</span></div>
+                        <div class="db-row__meta">계정 leesy*** · 해외 IP · 07-08 23:12</div>
+                    </div>
+                    <span class="db-row__side sb-badge sb-badge--amber">모니터링</span>
+                </div>
+                <div class="db-row">
+                    <span class="db-row__icon tone-gray"><i class="bi bi-key-fill"></i></span>
+                    <div class="db-row__main">
+                        <div class="db-row__title"><span class="txt">관리자 권한 부여 변경</span></div>
+                        <div class="db-row__meta">park**** → 임원진 권한 부여 · 07-07 16:03</div>
+                    </div>
+                    <span class="db-row__side sb-badge sb-badge--gray">완료</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+</body>
+</html>

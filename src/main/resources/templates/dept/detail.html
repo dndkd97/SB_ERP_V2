@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{fragments/layout}">
+<head>
+    <title th:text="${dept.deptName} + ' 상세 · SBerp'">부서 상세</title>
+</head>
+<body data-page="deptmy">
+<main layout:fragment="content" class="sb-content">
+    <!-- 페이지 헤더 -->
+    <div class="sb-page-head">
+        <div class="sb-page-head__txt">
+            <div class="sb-breadcrumb">
+                <a th:href="@{/}">홈</a>
+                <i class="bi bi-chevron-right"></i>
+                <a th:href="@{/dept/detail(deptId=${dept.deptId})}">부서 상세 현황</a>
+                <i class="bi bi-chevron-right"></i>
+                <span th:text="${dept.deptName}"></span>
+            </div>
+            <h1 th:text="${dept.deptName}"></h1>
+            <p th:text="${dept.deptCode}"></p>
+        </div>
+        <div class="sb-page-head__actions">
+            <a th:href="@{/dept/list(comId=${dept.comId})}" class="btn btn-ghost btn-sm">
+                <i class="bi bi-arrow-left"></i> 목록으로
+            </a>
+        </div>
+    </div>
+
+    <!-- 내 소속 부서 안내 배너 (dept.css .my-dept-banner 재사용) -->
+    <!-- [변경점] <c:if test="${isMyDept}"> -> th:if (boolean 값이라 empty 체크 없이 그대로) -->
+    <div th:if="${isMyDept}" class="my-dept-banner">
+        <i class="bi bi-person-check-fill"></i>
+        현재 내가 소속된 부서입니다.
+    </div>
+
+    <!-- 부서 기본 정보 -->
+    <div class="sb-card mb-3">
+        <div class="sb-card__head">
+            <h2><i class="bi bi-diagram-3 me-2 text-soft"></i>부서 기본 정보</h2>
+        </div>
+        <div class="sb-card__body">
+            <div class="row g-3">
+                <!-- dept_name -->
+                <div class="col-md-6">
+                    <label class="dd-label">부서 이름</label>
+                    <div class="view-val view-val--accent" style="font-weight:700" th:text="${dept.deptName}"></div>
+                </div>
+
+                <!-- dept_code -->
+                <div class="col-md-6">
+                    <label class="dd-label">부서 코드</label>
+                    <div class="view-val"><span class="dept-code-chip" th:text="${dept.deptCode}"></span></div>
+                </div>
+
+                <!-- parent_id -->
+                <div class="col-md-6">
+                    <label class="dd-label">상위 부서</label>
+                    <div class="view-val">
+                        <span th:if="${dept.parentId != null}" class="dept-code-chip"
+                              style="background:var(--sb-accent-soft);color:var(--sb-accent)"
+                              th:text="${dept.parentName}"></span>
+                        <th:block th:unless="${dept.parentId != null}">
+                            <span class="dept-code-chip">최상위 부서</span>
+                            <span class="view-val-empty ms-1">NULL</span>
+                        </th:block>
+                    </div>
+                </div>
+
+                <!-- emp_id (부서장) -->
+                <div class="col-md-6">
+                    <label class="dd-label">부서장</label>
+                    <div class="view-val">
+                        <th:block th:if="${dept.leaderId != null}">
+                            <span class="sb-avatar" style="width:22px;height:22px;font-size:11px"
+                                  th:text="${#strings.substring(dept.leaderName, 0, 1)}"></span>
+                            <span class="ms-1" th:text="${dept.leaderName} + ' ' + ${dept.leaderPosName}"></span>
+                            <span class="text-faint ms-1" style="font-size:11.5px" th:text="'#' + ${dept.leaderEmpNo}"></span>
+                        </th:block>
+                        <span th:unless="${dept.leaderId != null}" class="view-val-empty">지정된 부서장 없음</span>
+                    </div>
+                </div>
+
+                <!-- 계층 경로 -->
+                <div class="col-12">
+                    <label class="dd-label">계층 경로</label>
+                    <div class="hier-preview">
+                        <th:block th:each="node, vs : ${ancestorChain}">
+                            <span class="hier-node" th:classappend="${vs.last} ? 'hier-node--new'" th:text="${node}"></span>
+                            <i th:if="${not vs.last}" class="bi bi-chevron-right hier-sep"></i>
+                        </th:block>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- 소속 사원 -->
+    <div class="sb-card">
+        <div class="sb-card__head">
+            <h2><i class="bi bi-people me-2 text-soft"></i>소속 사원</h2>
+            <div class="right">
+                <span class="sb-badge sb-badge--gray" th:text="${#lists.size(deptEmpList)} + '명'"></span>
+            </div>
+        </div>
+        <div class="sb-card__body--flush">
+            <table class="sb-table" id="empTable" th:style="${#lists.isEmpty(deptEmpList)} ? 'display:none' : ''">
+                <thead>
+                    <tr>
+                        <th style="width:70px">사원번호</th>
+                        <th>이름</th>
+                        <th style="width:110px">직급</th>
+                        <th style="width:180px">이메일</th>
+                        <th style="width:130px">연락처</th>
+                        <th style="width:100px">상태</th>
+                        <th style="width:110px">입사일</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="e : ${deptEmpList}">
+                        <td class="sb-hr-cell tnum" th:text="${e.empNo}"></td>
+                        <td>
+                            <div class="sb-rowuser">
+                                <span class="sb-avatar" style="width:26px;height:26px;font-size:11.5px"
+                                      th:text="${#strings.substring(e.empName, 0, 1)}"></span>
+                                <span class="sb-table__name" th:text="${e.empName}"></span>
+                            </div>
+                        </td>
+                        <td>
+                            <span th:text="${e.posName}"></span>
+                            <span class="text-faint" style="font-size:11px" th:text="'#' + ${e.posId}"></span>
+                        </td>
+                        <td class="sb-hr-cell" style="font-size:12.5px" th:text="${e.empEmail}"></td>
+                        <td class="sb-hr-cell tnum" style="font-size:12.5px" th:text="${e.empMobile}"></td>
+                        <td>
+                            <span th:switch="${e.empStatus}">
+                                <span th:case="'재직'" class="sb-badge sb-badge--green">재직</span>
+                                <span th:case="'휴직'" class="sb-badge sb-badge--amber">휴직</span>
+                                <span th:case="'퇴직'" class="sb-badge sb-badge--cyan">퇴직</span>
+                                <span th:case="*" class="sb-badge sb-badge--gray" th:text="${e.empStatus}"></span>
+                            </span>
+                        </td>
+                        <td class="sb-hr-cell" style="font-size:12.5px" th:text="${e.hireDate}"></td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="sb-empty" id="empEmpty" th:style="${#lists.isEmpty(deptEmpList)} ? '' : 'display:none'">
+                <i class="bi bi-people"></i>
+                <p>소속 사원이 없습니다.</p>
+            </div>
+        </div>
+    </div>
+</main>
+</body>
+</html>

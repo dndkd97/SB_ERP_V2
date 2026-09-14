@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+	xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+	xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	layout:decorate="~{fragments/layout}">
+<head>
+<title>사원 상세</title>
+</head>
+<body>
+	<section class="emp_detail sb-content" layout:fragment="content">
+
+		<!-- 페이지 헤더 -->
+		<div class="sb-page-head">
+			<div class="sb-page-head__txt">
+				<div class="sb-breadcrumb">
+					<a th:href="@{/}">홈</a> <i class="bi bi-chevron-right"></i> <a
+						th:href="@{/emp/list}">사원관리</a> <i class="bi bi-chevron-right"></i>
+					상세정보
+				</div>
+				<h1 th:text="${emp.empName}">홍길동</h1>
+				<p>
+					<span th:text="${emp.deptName}">부서</span> · <span
+						th:text="${emp.posName}">직급</span>
+				</p>
+			</div>
+			<div class="sb-page-head__actions">
+				<a th:href="@{/emp/list}" class="btn btn-ghost btn-sm"> <i
+					class="bi bi-arrow-left"></i> 목록으로
+				</a>
+			</div>
+		</div>
+
+		<!-- 프로필 카드 + AI 리포트 (가로) -->
+		<div class="row g-3 mb-3">
+			<!-- 좌: 프로필 카드 -->
+			<div class="col-lg-4">
+				<div class="sb-card h-100">
+					<div class="sb-card__body">
+						<!-- 상단: 아바타 + 이름·직급 -->
+						<div class="d-flex flex-column align-items-center text-center">
+							<div class="sb-avatar sb-avatar--xl mb-2"
+								th:text="${#strings.substring(emp.empName, 0, 1)}">홍</div>
+
+							<h3 class="mb-1" style="font-size: 1.35rem; font-weight: 700;"
+								th:text="${emp.empName}">홍길동</h3>
+
+							<p class="text-soft mb-2" style="font-size: 0.95rem;">
+								<span th:text="${emp.deptName}">부서</span> · <span
+									th:text="${emp.posName}">직급</span>
+							</p>
+
+							<div class="d-flex gap-1 flex-wrap justify-content-center">
+								<span class="sb-badge sb-badge--gray" th:text="${emp.empNo}">EMP-001</span>
+								<span th:switch="${emp.empStatus}"> <span th:case="'재직'"
+									class="sb-badge sb-badge--green"><span class="pip"></span>재직</span>
+									<span th:case="'휴직'" class="sb-badge sb-badge--amber"><span
+										class="pip"></span>휴직</span> <span th:case="'퇴직'"
+									class="sb-badge sb-badge--red"><span class="pip"></span>퇴직</span>
+								</span>
+							</div>
+						</div>
+
+						<hr class="my-3" style="border-color: var(- -sb-border);">
+
+						<!-- 하단: 연락 정보 3단 -->
+						<div class="row g-3">
+							<div class="col-4">
+								<p class="text-faint mb-1" style="font-size: 0.8rem;">
+									<i class="bi bi-envelope me-1"></i>이메일
+								</p>
+								<p class="mb-0"
+									style="font-size: 0.9rem; word-break: break-all;"
+									th:text="${emp.empEmail}">email@sberp.com</p>
+							</div>
+							<div class="col-4">
+								<p class="text-faint mb-1" style="font-size: 0.8rem;">
+									<i class="bi bi-telephone me-1"></i>연락처
+								</p>
+								<p class="mb-0 tnum" style="font-size: 0.9rem;"
+									th:text="${emp.empMobile}">010-0000-0000</p>
+							</div>
+							<div class="col-4">
+								<p class="text-faint mb-1" style="font-size: 0.8rem;">
+									<i class="bi bi-calendar-check me-1"></i>입사일
+								</p>
+								<p class="mb-0 tnum" style="font-size: 0.9rem;"
+									th:text="${emp.hireDate}">2020-01-01</p>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- 우: AI 리포트 (있으면 카드, 없으면 빈 상태) -->
+			<div class="col-lg-8">
+				<!-- 리포트 있을 때 -->
+				<div th:if="${latestReport != null}" class="sb-card h-100">
+					<div
+						class="sb-card__head d-flex justify-content-between align-items-center">
+						<h2>
+							<i class="bi bi-robot me-2 text-soft"></i>최근 AI 리포트
+						</h2>
+						<a th:if="${isAdmin}"
+							th:href="@{/eval/report/detail(reportId=${latestReport.reportId})}"
+							class="btn btn-ghost btn-sm"> <i
+							class="bi bi-box-arrow-up-right"></i> 상세 보기
+						</a>
+					</div>
+
+					<div class="sb-card__body">
+						<div class="row g-3 mt-1 align-items-stretch">
+							<!-- 좌 구역: 등급 + 점수 + 라벨 -->
+							<div class="col-md-4">
+								<div class="row g-2 align-items-center h-100">
+									<!-- 등급 -->
+									<div class="col-6 d-flex flex-column align-items-center text-center">
+										<p class="text-faint mb-2">종합 등급</p>
+										<span class="sb-grade sb-grade--lg"
+											th:classappend="${'sb-grade--' + #strings.toLowerCase(latestReport.grade)}"
+											th:text="${latestReport.grade}">A</span>
+									</div>
+									<!-- 점수 + 감성 -->
+									<div class="col-6 text-center">
+										<div class="mb-3">
+											<p class="text-faint mb-1">종합 점수</p>
+											<p class="mb-0 tnum fw-semibold" style="font-size: 1.25rem;"
+												th:text="${#numbers.formatDecimal(latestReport.overallScore, 1, 2)}">4.00</p>
+										</div>
+										<div>
+											<p class="text-faint mb-1">감성 라벨</p>
+											<span th:if="${latestReport.sentimentLabel != null}"
+												th:switch="${latestReport.sentimentLabel}"> <span
+												th:case="'POSITIVE'" class="sb-badge sb-badge--green">긍정적</span>
+												<span th:case="'NEUTRAL'" class="sb-badge sb-badge--gray">중립적</span>
+												<span th:case="'NEGATIVE'" class="sb-badge sb-badge--red">부정적</span>
+											</span> <span th:if="${latestReport.sentimentLabel == null}"
+												class="text-faint">—</span>
+										</div>
+									</div>
+								</div>
+							</div>
+
+							<!-- 우 구역: 평가 회차 + 요약 -->
+							<div class="col-md-8 ps-3">
+								<div class="mb-3">
+									<p class="text-faint mb-1">평가 회차</p>
+									<p class="mb-0">
+										<span th:text="${latestReport.periodTitle}">2026년 하반기
+											정기평가</span> <span class="sb-badge sb-badge--gray ms-1"
+											th:text="${latestReport.generatedAt}">2026-07-09 12:00</span>
+									</p>
+								</div>
+								<div>
+									<p class="text-faint mb-1">
+										<i class="bi bi-chat-quote me-1"></i>요약
+									</p>
+									<p class="mb-0"
+										th:if="${latestReport.aiSummary != null and !#strings.isEmpty(latestReport.aiSummary)}"
+										style="white-space: pre-line;"
+										th:text="${latestReport.aiSummary}">성과 지표가 꾸준히 개선되고 있으며
+										전문성 측면에서도 강점을 보입니다.</p>
+									<p class="mb-0 text-faint"
+										th:if="${latestReport.aiSummary == null or #strings.isEmpty(latestReport.aiSummary)}">
+										요약문이 아직 생성되지 않았습니다.</p>
+								</div>
+							</div>
+						</div>
+
+						<div class="mt-4 pt-2 border-top text-faint text-end"
+							style="font-size: 0.75rem;">
+							<i class="bi bi-cpu me-1"></i>
+							<span th:text="${latestReport.modelName}">gpt-4o-mini</span>
+						</div>
+					</div>
+				</div>
+
+				<!-- 리포트 없을 때 (양쪽 페르소나 모두) -->
+				<div th:if="${latestReport == null}" class="sb-card h-100">
+					<div
+						class="sb-card__body h-100 d-flex flex-column align-items-center 
+						justify-content-center text-center text-faint">
+						<i class="bi bi-file-earmark-text"
+							style="font-size: 2rem; opacity: 0.5;"></i>
+						<p class="mb-0 mt-2">아직 생성된 AI 리포트가 없습니다.</p>
+						<p class="mb-0" style="font-size: 0.85rem;">평가 회차가 마감되고 리포트가
+							생성되면 여기에 표시됩니다.</p>
+					</div>
+				</div>
+
+			</div>
+		</div>
+
+		<!-- 상세 정보 카드 -->
+		<div class="detInfoBox sb-card mb-3">
+			<div class="sb-card__head">
+				<h2>
+					<i class="bi bi-person-lines-fill me-2 text-soft"></i>상세 정보
+				</h2>
+			</div>
+			<div class="sb-card__body">
+				<div class="row g-3">
+					<div class="col-md-3">
+						<div class="text-faint">사번</div>
+						<p th:text="${emp.empNo}">EMP-001</p>
+					</div>
+					<div class="col-md-3">
+						<div class="text-faint">이름</div>
+						<p th:text="${emp.empName}">홍길동</p>
+					</div>
+					<div class="col-md-3">
+						<div class="text-faint">부서</div>
+						<p th:text="${emp.deptName}">부서</p>
+					</div>
+					<div class="col-md-3">
+						<div class="text-faint">직급</div>
+						<p th:text="${emp.posName}">직급</p>
+					</div>
+					<div class="col-md-3">
+						<div class="text-faint">이메일</div>
+						<p th:text="${emp.empEmail}">email@sberp.com</p>
+					</div>
+					<div class="col-md-3">
+						<div class="text-faint">연락처</div>
+						<p th:text="${emp.empMobile}">010-0000-0000</p>
+					</div>
+					<div class="col-md-3">
+						<div class="text-faint">입사일</div>
+						<p class="tnum" th:text="${emp.hireDate}">2020-01-01</p>
+					</div>
+					<div class="col-md-3">
+						<div class="text-faint">재직상태</div>
+						<div th:switch="${emp.empStatus}">
+							<span th:case="'재직'" class="sb-badge sb-badge--green"><span
+								class="pip"></span>재직</span> <span th:case="'휴직'"
+								class="sb-badge sb-badge--amber"><span class="pip"></span>휴직</span>
+							<span th:case="'퇴직'" class="sb-badge sb-badge--red"><span
+								class="pip"></span>퇴직</span>
+						</div>
+					</div>
+					<div class="col-md-3">
+						<div class="text-faint">등록일</div>
+						<p class="tnum" th:text="${emp.createdAt}">2020-01-01</p>
+					</div>
+					<div class="col-md-3">
+						<div class="text-faint">최근 수정일</div>
+						<p class="tnum" th:text="${emp.updatedAt}">2020-01-01</p>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- 하단 버튼 -->
+		<div class="d-flex gap-2 justify-content-end">
+			<!-- 권한 관리 (관리자용) -->
+			<a sec:authorize="hasRole('ROLE_ADMIN')"
+				th:href="@{/perm/emp(empId=${emp.empId})}"
+				class="btn btn-ghost btn-sm"> <i class="bi bi-shield-lock"></i>
+				권한 관리
+			</a>
+			<!-- 비밀번호 초기화 (관리자용) -->
+			<a sec:authorize="hasRole('ROLE_ADMIN')"
+				th:href="@{/emp/resetPass(empId=${emp.empId})}"
+				class="btn btn-ghost btn-sm"> <i class="bi bi-key"></i> 비밀번호 초기화
+			</a>
+			<!-- 비밀번호 수정 (본인만) -->
+			<a th:if="${loginEmpId == emp.empId}"
+				th:href="@{/emp/editPass(empId=${emp.empId})}"
+				class="btn btn-ghost btn-sm"> <i class="bi bi-key"></i> 비밀번호 수정
+			</a> <a th:href="@{/emp/edit(empId=${emp.empId})}"
+				class="btn btn-sb btn-sm"> <i class="bi bi-pencil"></i> 정보 수정
+			</a>
+		</div>
+	</section>
+</body>
+</html>

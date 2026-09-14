@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{fragments/layout.html}">
+<head>
+	<title>결재 양식 관리</title>
+	<link rel="stylesheet" th:href="@{/css/summernote-lite.min.css}"/>
+</head>
+<body>
+
+<main layout:fragment="content">
+
+	<!-- 토스트 / 안내 문구 -->
+	<div class="toast-container position-fixed bottom-0 end-0 p-3"
+		 style="z-index: 1080;" id="toastContainer"></div>
+	<div id="flashToastData"
+		 th:if="${toastMsg}"
+		 th:attr="data-type=${toastType} ?: 'info', data-msg=${toastMsg}"
+		 style="display: none;"></div>
+	<script th:src="@{/js/appr-toast.js}"></script>
+	
+	
+
+	<div class="sb-page-head">
+		<div class="sb-page-head__txt">
+			<div class="sb-breadcrumb">
+				<a th:href="@{/appr/list_form}">전자결재</a>
+				<i class="bi bi-chevron-right"></i>
+				<span>양식 관리</span>
+			</div>
+			<h1>결재 양식 수정</h1>
+			<p>결재 양식 정보를 삭제 및 수정 저장합니다.</p>
+		</div>
+		<div class="sb-page-head__actions">
+			<button type="button" class="btn btn-ghost"
+					th:onclick="|location.href='@{/appr/list_form}'|">
+					목록으로
+			</button>
+		</div>
+	</div>
+	
+	<form th:action="@{/appr/update_form}" method="post" onsubmit="return checkForm()">
+		<input type="hidden" th:if="${_csrf}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+		<input type="hidden" name="forId" th:value="${dto.forId}">
+		<input type="hidden" name="forVersion" th:value="${dto.forVersion}">
+	
+		<div class="row g-8">
+           <div class="col-lg-9">
+               <div class="sb-card">
+                   <div class="sb-card__head">
+                   	<h2>기본 정보</h2>
+                   </div>
+                   
+                   <div class="sb-card__body">
+                       <div class="row g-4 mb-4">
+	                       <div class="col-md-6">
+		                           <label for="forCode" class="sb-form-label">양식 코드</label>
+		                           <input type="text" class="form-control"
+									  	  id="forCode" name="forCode" th:value="${dto.forCode}"/>
+		                           <div class="form-text text-faint mt-1">ex) TEST-01</div>
+		                           <div id="err_forCode" class="text-danger fw-semibold mt-1"
+									 	style="display: none; font-size: 14px;">
+										양식 코드를 입력해주세요
+								</div>
+								<div class="tforCode"></div>
+	                       	</div>
+	                        <div class="col-md-6 position-relative">
+	                            <label for="comName" class="sb-form-label">양식 추가할 회사</label>
+	                            <div class="ac-wrap">
+		                            <div class="sb-search">
+		                            	<i class="bi bi-building"></i>
+			                            <input type="text" id="comName"
+			                            	   th:value="${dto.comName}" placeholder="회사이름 입력" autocomplete="off"/>
+	                          	    </div>
+	                          	    <div class="ac-list" id="companyDropdown"></div>
+	                          	</div>
+	                            <input type="hidden" id="comId" name="comId" th:value="${dto.comId}" />	
+	                            <div id="err_comId" class="text-danger fw-semibold mt-1"
+									 style="display: none; font-size: 14px;">
+									 추가할 회사를 선택해주세요
+								</div>
+	                       	</div>
+                     	</div>
+
+                   <div class="row g-4 mb-4">
+                       <div class="col-md-6">
+                           <label for="forTitle"
+                           	   class="sb-form-label">양식 제목</label>
+                           <input type="text" class="form-control"
+                           	   id="forTitle" name="forTitle" th:value="${dto.forTitle}"/>
+                          	<div id="err_forTitle" class="text-danger fw-semibold mt-1"
+						 style="display: none; font-size: 14px;">
+						 양식 제목을 입력해주세요
+						</div>
+                       </div>
+                       <div class="col-md-6">
+                           <label class="sb-form-label">활성화 여부</label>
+							<div class="sb-info-box d-flex align-items-center justify-content-start gap-5">
+								<div>
+									<strong>양식 활성화</strong>
+									<div class="form-text text-secondary mt-1 mb-0" style="font-size: 13px;">
+										활성화된 양식만 문서 작성 시 선택 목록에 나타납니다.
+									</div>
+								</div>
+								<div class="form-check form-switch mb-0 flex-shrink-0">
+									<input class="form-check-input sb-checkbox"
+										   type="checkbox" id="forStatus" name="forStatus"
+										   style="width: 40px; height: 20px;"
+										   th:checked="${dto.forStatus == true}"/>
+	                                <input type="hidden" name="_forStatus" value="off"/>
+								</div>
+							</div>
+                       </div>
+                   </div>
+
+
+
+                   <div class="mb-4">
+					<div id="schemaDataHolder" th:if="${dto.forSchema != null}" 
+						 th:attr="data-schema=${dto.forSchema}" style="display: none;"></div>
+					<input type="hidden" id="forSchema" name="forSchema" value=""/> 
+						
+					<!-- 스키마 기반 -->
+					<div id="schemaEditorWrap" style="display: none;">
+						<label class="sb-form-label">양식 필드 구성</label>
+						<div id="schemaFieldList" class="d-flex flex-column gap-2"></div>
+						<button type="button" class="btn btn-sm btn-outline-primary mt-2"
+								id="addFieldBtn">
+							<i class="bi bi-plus-lg"></i> 필드 추가
+						</button>
+					</div>
+						
+					<!-- 기존 에디터 방식 -->
+					<div id="contentEditorWrap">	
+                    	<label for="forContent" class="sb-form-label">양식 내용</label>
+                        <textarea name="forContent" rows="10" cols="40"
+						      	  class="form-control" id="forContent"
+						      	  th:text="${dto.forContent}"></textarea>
+                        <div id="err_forContent" class="text-danger fw-semibold mt-1"
+							 style="display: none; font-size: 14px;">
+							 양식 내용을 입력해주세요
+						</div>
+					</div>
+                   </div>
+                   
+                   <div class="sb-divider"></div>
+                   
+                   <div class="d-flex justify-content-between align-items-center">
+					<button type="button" class="btn btn-ghost text-danger" 
+					        th:onclick="|deleteForm('${dto.forId}', '${dto.forVersion}')|">
+					     	<i class="bi bi-trash3"></i>삭제
+					</button>
+					<div class="d-flex gap-2">
+						<button type="button"
+								class="btn btn-ghost" 
+						        th:onclick="|location.href='@{/appr/list_form}'|">
+						    	취소
+						</button>
+						<button type="submit" class="btn btn-sb">변경사항 저장</button>
+					</div>
+                   </div>
+               </div>
+           </div>
+		</div>
+	
+	       <div class="col-lg-3">
+	           <div class="sb-card mb-4">
+	           	<div class="sb-card__head">
+	           		<h2>양식 상세 정보</h2>
+	               </div>
+	               
+	               <div class="sb-card__body">
+	                   <div class="d-flex justify-content-between border-bottom pb-2 mb-2">
+	                       <span class="text-soft font-size-13">양식 ID</span>
+	                       <span class="fw-bold tnum text-secondary" th:text="${dto.forId}"></span>
+	                   </div>
+	                   <div class="d-flex justify-content-between border-bottom pb-2 mb-2">
+	                       <span class="text-soft font-size-13">생성일</span>
+	                       <span class="tnum text-dark small" th:text="${dto.createdAt}"></span>
+	                   </div>
+	                   <div class="d-flex justify-content-between border-bottom pb-2 mb-2">
+	                       <span class="text-soft font-size-13">수정일</span>
+	                       <span class="tnum text-dark small" th:text="${dto.updatedAt}"></span>
+	                   </div>
+	                   <div class="d-flex justify-content-between align-items-center">
+	                       <span class="text-soft font-size-13">사용 여부</span>
+	                       <span class="sb-badge"
+	                       	  th:classappend="${dto.forStatus} ? 'sb-badge--green' : 'sb-badge--gray'">
+	                       	<span class="pip"></span>
+	                       	<th:block th:text="${dto.forStatus} ? '활성화' : '비활성화'"></th:block>
+	                       </span>
+	                   </div>
+	               </div>
+	               
+	
+	               <div class="sb-card__body bg-light border-top">
+	               	<div class="d-flex gap-2 align-items-start">
+	                   	<i class="bi bi-info-circle-fill text-primary mt-1"></i>
+	                   	<p class="m-0 text-soft" style="font-size: 12px;">
+	                        	해당 양식의 고유 정보 및 변경 이력입니다.
+	                    	</p>
+		                </div>
+		            </div>
+		        </div>
+		        
+                <div class="sb-card mb-4">
+               		<div class="sb-card__head">
+               			<h2>버전 이력</h2>
+               			<p class="mb-0 text-secondary" style="font-size: 12px;">버전별로 개별 삭제할 수 있습니다.</p>
+               		</div>
+               		<div class="sb-card__body sb-card__body--flush">
+               			<div id="versionHistoryList" class="d-flex flex-column">
+               				<div class="text-center text-muted py-3 small">불러오는 중...</div>
+               			</div>
+               		</div>
+               </div>
+		    </div>
+		</div>
+	</form>
+	
+	<!-- 삭제 비밀번호 모달 -->
+	<div class="modal fade" id="deleteModal" tabindex="-1">
+		<div class="modal-dialog modal-dialog-centered">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title"><i class="bi bi-shield-lock"></i> 관리자 확인</h5>
+					<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+				</div>
+				<div class="modal-body">
+					<p class="text-soft mb-3">양식을 삭제하려면 본인 계정의 비밀번호를 입력해주세요.</p>
+					<input type="password" class="form-control" id="deleteInput" placeholder="비밀번호"/>
+					<div id="deleteErr" class="text-danger small mt-2" style="display: none;"></div>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-ghost" data-bs-dismiss="modal">취소</button>
+					<button type="button" class="btn btn-danger" id="deleteConfirmBtn">
+						<i class="bi bi-trash3"></i> 삭제
+					</button>
+				</div>
+			</div> 
+		</div>
+	</div>
+
+	<!-- jquery 로드 -->
+	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+	
+	<!-- js파일 로드 -->
+	<script th:src="@{/js/summernote-lite.min.js}"></script>
+	
+	<script>
+	/////////////////////////////// 웹 에디터 ///////////////////////////////
+	
+		(function(){
+			// 제이쿼리, 써머노트 메모리에 등록될때까지 확인
+			var initTimer = setInterval(function(){
+				if (typeof window.jQuery !== 'undefined' && window.jQuery.fn.summernote){
+					clearInterval(initTimer);
+					
+					// 써머노트 에디터 구동
+					window.jQuery('#forContent').summernote({
+						placeholder: '양식 내용을 입력해 주세요.',
+						tabsize: 2,
+						height: 350,
+						toolbar:[
+							['style',['style']],
+							['font', ['bold', 'italic', 'underline', 'clear']],
+							['color', ['color']],
+							['para', ['ul', 'ol', 'paragraph']],
+							['table', ['table']],
+							['insert', ['link', 'picture']],
+							['view', ['fullscreen', 'codeview']]
+						]
+					});
+					console.log("써머노트 구동테스트");
+				}
+			}, 50);
+		})();
+	
+	/////////////////////////////// 웹 에디터 ///////////////////////////////
+	</script>
+
+<script>
+
+let valid = true;
+let originalCode = "";
+
+	/////////////////////////////// 스키마 파싱 ///////////////////////////////
+	
+	window.addEventListener("load", function(){
+		const holder = document.getElementById("schemaDataHolder");
+		if(!holder) return;
+		
+		isSchemaMode = true;
+		document.getElementById("schemaEditorWrap").style.display = "block";
+		document.getElementById("contentEditorWrap").style.display = "none";
+		
+		const schema = JSON.parse(holder.getAttribute("data-schema"));
+		schema.fields.forEach(f => addFieldRow(f));
+	});
+	
+	function addFieldRow(field = {}){
+		const list = document.getElementById("schemaFieldList");
+		const row = document.createElement("div");
+		row.className = "border rounded p-3 schema-field-row";
+		
+		row.innerHTML = `
+			<div class="row g-2">
+				<div class="col-md-4">
+					<label class="sb-form-label small mb-1">필드 라벨</label>
+					<input type="text" class="form-control form-control-sm schema-label" value="${field.label || ''}"/>
+				</div>
+				<div class="col-md-3">
+					<label class="sb-form-label small mb-1">타입</label>
+					<select class="form-select form-select-sm schema-type">
+						${['text','textarea','date','number','select'].map(t =>
+							`<option value="${t}" ${field.type===t?'selected':''}>${t}</option>`).join('')}
+					</select>
+				</div>
+				<div class="col-md-3">
+					<label class="sb-form-label small mb-1">key</label>
+					<input type="text" class="form-control form-control-sm schema-key"
+						   value="${field.key || ''}" pattern="[a-zA-Z_][a-zA-Z0-9_]*"
+						   placeholder="예: trip_reason"/>
+					<div class="text-danger small key-err" style="display: none;">영문/숫자/언더바만 입력 가능합니다.</div>
+				</div>
+				<div class="col-md-2 d-flex align-items-end">
+					<div class="form-check">
+						<input type="checkbox" class="form-check-input schema-required" ${field.required?'checked':''}/>
+						<label class="form-check-label small">필수</label>
+					</div>
+				</div>
+			</div>
+			<div class="mt-2 schema-options-wrap" style="display:${field.type==='select'?'block':'none'};">
+				<label class="sb-form-label small mb-1">선택지 (쉼표로 구분)</label>
+				<input type="text" class="form-control form-control-sm schema-options"
+					   value="${(field.options||[]).join(', ')}"/>
+			</div>
+			<button type="button" class="btn btn-sm btn-outline-danger mt-2 schema-remove-btn">
+				<i class="bi bi-trash3"></i> 필드 삭제
+			</button>
+		`;
+		
+		// key 입력 필터링
+		const keyInput = row.querySelector(".schema-key");
+		const keyErr = row.querySelector(".key-err");
+		keyInput.addEventListener("input", function(){
+			const filtered = this.value.replace(/[^a-zA-Z0-9_]/g, '');
+			if(filtered !== this.value){
+				this.value = filtered;
+				keyErr.style.display = "block";
+				setTimeout(() => keyErr.style.display = "none", 1500);
+			}
+		});
+		
+		// 타입이 select로 바뀌면 옵션 입력창 보이기
+		const typeSelect = row.querySelector(".schema-type");
+		const optionsWrap = row.querySelector(".schema-options-wrap");
+		typeSelect.addEventListener("change", function(){
+			optionsWrap.style.display = this.value === "select" ? "block" : "none";
+		});
+		
+		row.querySelector(".schema-remove-btn").addEventListener("click", function(){
+			row.remove();
+		});
+
+		list.appendChild(row);
+	}
+	
+	document.getElementById("addFieldBtn").addEventListener("click", function(){
+		addFieldRow();
+	});
+	
+	/////////////////////////////// 스키마 파싱 ///////////////////////////////
+	
+	/////////////////////////////// 파싱된거 도로 JSON에 넣기 ///////////////////////////////
+	
+	function buildSchemaFromEditor(){
+		const rows = document.querySelectorAll(".schema-field-row");
+		const fields = Array.from(rows).map(row => {
+			const type = row.querySelector(".schema-type").value;
+			const key = row.querySelector(".schema-key").value.trim();
+			const field = {
+				key: key,
+				label: row.querySelector(".schema-label").value.trim(),
+				type: type,
+				required: row.querySelector(".schema-required").checked
+			};
+			if(type === "select"){
+				field.options = row.querySelector(".schema-options").value
+					.split(",").map(s => s.trim()).filter(s => s !== "");
+			}
+			return field;
+		});
+		return JSON.stringify({ fields });
+	}
+	
+	/////////////////////////////// 파싱된거 도로 JSON에 넣기 ///////////////////////////////
+
+	/////////////////////////////// 회사 이름 검색 ///////////////////////////////
+
+	window.addEventListener("load", function(){
+		
+		let companySearch = document.getElementById("comName");
+		let comId = document.getElementById("comId");
+		let companyDropdown = document.getElementById("companyDropdown");
+		
+		// 입력 할때마다 실행
+		companySearch.addEventListener("keyup", function(e){
+			let value = e.target.value.trim();
+			
+			if(value !== "") {
+				// 데이터를 /searchCompany 경로에 company라는 이름으로 보냄
+				fetch(`/appr/searchCompany?company=${encodeURIComponent(value)}`)
+				.then(response => response.json())
+				.then(data => {
+					companyDropdown.innerHTML = ""; // 기존 목록 비우기
+					
+					if(data && data.length > 0){
+						companyDropdown.style.display = "block";
+						
+						data.forEach(item => {
+							let btn = document.createElement("button");
+							btn.type = "button";
+							btn.className = "dropdown-item d-flex justify-content-between align-items-center";
+							
+							// 태그 생성
+							let nameSpan = document.createElement("span");
+							// 생성된 태그에 클래스 추가
+							nameSpan.className = "company-name";
+							// 회사이름
+							btn.textContent = item.comName;
+							
+							// 위와 동일, 사업자 번호 파트
+							let bizSpan = document.createElement("span");
+							bizSpan.className = "text-muted small ms-2";
+							bizSpan.textContent = item.bizNo;
+							
+							// 삽입
+							btn.appendChild(nameSpan);
+							btn.appendChild(bizSpan);
+							
+							// 검색해서 나온 회사 이름 클릭
+							btn.addEventListener("click", function(){
+								companySearch.value = item.comName; // 회사이름 넣기
+								comId.value = item.comId; // insert구문 실행위해 com_id 값 넣기
+								companyDropdown.style.display = "none"; // 드롭다운 닫기
+								// 회사가 선택되면 재검증
+								if(window.checkFormCode) window.checkFormCode();
+							});
+							companyDropdown.appendChild(btn);
+						});
+					}
+					else{ // 검색결과 없을때
+						companyDropdown.innerHTML = "<span class='dropdown-item text-muted disabled'>검색 결과가 없습니다.</span>";
+						companyDropdown.style.display = "block";
+					}
+				})
+				.catch(error => {
+					console.error("회사 검색 오류:",error);
+					companyDropdown.style.display = "none";
+				});
+			}
+			else{ // 입력란 비어있을때 처리
+				comId.value = "";
+				companyDropdown.innerHTML = "";
+				companyDropdown.style.display = "none";
+				
+			}
+		});
+		// 입력창 외부공간 클릭시 정리
+		document.addEventListener("click", function(e){
+			if(e.target !== companySearch && e.target !== companyDropdown){
+				companyDropdown.style.display = "none";
+			}
+		});
+	});
+	
+	///////////////////// 버전 이력 /////////////////////
+
+	function loadVersionHistory(){
+		const forId = document.getElementsByName("forId")[0].value;
+		const currentVersion = parseInt(document.getElementsByName("forVersion")[0].value);
+		const box = document.getElementById("versionHistoryList");
+		
+		fetch(`/appr/getFormVersions?forId=${encodeURIComponent(forId)}`)
+		.then(res => res.json())
+		.then(data => {
+			box.innerHTML = "";
+			
+			if(!data || data.length === 0){
+				box.innerHTML = `<div class="text-center text-muted py-3 small">이력이 없습니다.</div>`;
+				return;
+			}
+			
+			data.forEach(v => {
+				const isCurrent = v.forVersion === currentVersion;
+				const isDeleted = v.deleted === true || v.deleted === "true";
+				
+				const row = document.createElement("div");
+				row.className = "d-flex justify-content-between align-items-center px-3 py-2 border-bottom";
+				row.innerHTML = `
+					<div>
+						<span class="fw-semibold">v${v.forVersion}</span>
+						${isCurrent ? '<span class="sb-badge sb-badge--blue ms-1" style="font-size:10px;">보는 중</span>' : ''}
+						${isDeleted ? '<span class="sb-badge sb-badge--gray ms-1" style="font-size:10px;">삭제됨</span>' : ''}
+						<div class="text-soft" style="font-size: 11px;">${v.createdAt ?? ''}</div>
+					</div>
+				`;
+				
+				if(!isDeleted){
+					const btn = document.createElement("button");
+					btn.type = "button";
+					btn.className = "btn btn-ghost btn-sm text-danger";
+					btn.innerHTML = '<i class="bi bi-trash3"></i>';
+					btn.addEventListener("click", () => deleteForm(v.forId, v.forVersion));
+					row.appendChild(btn);
+				}
+				
+				box.appendChild(row);
+			});
+		})
+		.catch(err => {
+			box.innerHTML = `<div class="text-center text-danger py-3 small">이력을 불러오지 못했습니다.</div>`;
+		})
+	};
+	
+	window.addEventListener("load", loadVersionHistory);
+	window.addEventListener("refreshVersionHistory", loadVersionHistory);
+	
+	///////////////////// 버전 이력 /////////////////////
+	
+	
+	///////////////////// 양식 삭제 모달 /////////////////////
+	
+	let deleteTarget = null; // 삭제 대상
+	let deleteModalInstance = null;
+	
+	function deleteForm(forId, forVersion){
+		deleteTarget = {forId, forVersion};
+		
+		document.getElementById("deleteInput").value = "";
+		document.getElementById("deleteErr").style.display = "none";
+		
+		if(!deleteModalInstance){
+			deleteModalInstance = new bootstrap.Modal(document.getElementById("deleteModal"));
+		}
+		deleteModalInstance.show();
+	}
+	
+	document.getElementById("deleteConfirmBtn").addEventListener("click", function(){
+		if(!deleteTarget) return;
+		
+		const pwInput = document.getElementById("deleteInput");
+		const errBox = document.getElementById("deleteErr");
+		const pw = pwInput.value;
+		
+		if(!pw){
+			errBox.textContent = "비밀번호를 입력해주세요.";
+			errBox.style.display = "block";
+			return;
+		}
+		
+		const btn = this;
+		btn.disabled = true;
+		
+		const params = new URLSearchParams();
+		params.append("forId", deleteTarget.forId);
+		params.append("forVersion", deleteTarget.forVersion);
+		params.append("empPass", pw);
+		
+		const csrfInput = document.querySelector('input[name="_csrf"]');
+		if(csrfInput){
+			params.append(csrfInput.name, csrfInput.value);
+		}
+		
+		fetch("/appr/deleteFormConfirm", {
+			method: "POST",
+			headers: { "Content-Type": "application/x-www-form-urlencoded" },
+			body: params
+		})
+		.then(res => res.json())
+		.then(data => {
+			btn.disabled = false;
+			
+			if(!data.success){
+				errBox.textContent = data.message || "삭제에 실패했습니다.";
+				errBox.style.display = "block";
+				return;
+			}
+			
+			deleteModalInstance.hide();
+			showToast('success', '양식이 삭제되었습니다.');
+			
+			const currentForId = document.getElementsByName("forId")[0].value;
+			const currentVersion = parseInt(document.getElementsByName("forVersion")[0].value);
+			
+			// 지금 편집중인 버전을 삭제 한경우 -> list_form
+			if(deleteTarget.forId == currentForId && deleteTarget.forVersion === currentVersion){
+				location.href = "/appr/list_form";
+			}
+			// 다른 버전 삭제한 경우 -> 버전 이력만 갱신
+			else{
+				window.dispatchEvent(new Event("refreshVersionHistory"));
+			}
+		})
+		.catch(err => {
+			btn.disabled = false;
+			errBox.textContent = "서버 오류가 발생했습니다.";
+			errBox.style.display = "block";
+		})
+	})
+	
+	///////////////////// 양식 삭제 모달 /////////////////////
+	
+	/////////////////////////////// 빈칸 처리 ///////////////////////////////
+	
+	function checkForm(){
+	
+		// 빈칸 체크할 요소들 매핑 {key : value}
+		// 아래처럼 매핑 안하면 일일이 하나씩 getElementById 를써서 비교하고 변경해야함
+		const fields = [
+			{ id: "forCode", errId: "err_forCode"},
+			{ id: "forTitle", errId: "err_forTitle"},
+			{ id: "comId", errId: "err_comId", focusId: "comName"}
+		];
+		
+		if(!isSchemaMode){
+			fields.push({ id: "forContent", errId: "err_forContent", isEditor: true});
+		}
+		
+		let result = true;
+		let focusElement = null;
+		
+		fields.forEach(field => {
+			let id = document.getElementById(field.id);
+			let errId = document.getElementById(field.errId);
+			if(!id) return;
+			
+			// 테두리/에러 초기화
+			if(field.isEditor){
+				const editorElement = id.nextElementSibling;
+				if(editorElement && editorElement.classList.contains('note-editor')){
+					editorElement.classList.remove("is-invalid");
+				}
+			}
+			else {
+				id.classList.remove("is-invalid");
+			}
+			if(field.focusId){
+				document.getElementById(field.focusId).classList.remove("is-invalid");
+			}
+			if(errId) errId.style.display = "none";
+		
+			// 빈값 체크
+			let isEmpty;
+			if(field.isEditor){
+				const editorCode = window.jQuery('#' + field.id).summernote('code');
+				isEmpty = window.jQuery('#' + field.id).summernote('isEmpty') ||
+						  editorCode === '' || editorCode === '<p><br></p>';
+			}
+			else {
+				isEmpty = id.value.trim() === "";
+			}
+			
+			if(isEmpty){
+				if(field.isEditor){
+					const editorElement = id.nextElementSibling;
+					if(editorElement && editorElement.classList.contains('note-editor')){
+						editorElement.classList.add("is-invalid");
+					}
+				}
+				else if(field.focusId){
+					document.getElementById(field.focusId).classList.add("is-invalid");
+				}
+				else {
+					id.classList.add("is-invalid");
+				}
+				if(errId) errId.style.display = "block";
+				if(!focusElement){
+					focusElement = field.focusId ? document.getElementById(field.focusId) : id;
+				}
+				result = false;
+			}
+		});
+		
+		// 스키마 검증
+		if(isSchemaMode){
+			const rows = document.querySelectorAll(".schema-field-row");
+			if(rows.length === 0){
+				alert("최소 1개 이상의 필드가 필요합니다.");
+				result = false;
+			}
+				
+			const keys = Array.from(rows).map(r => r.querySelector(".schema-key").value.trim());
+			if(keys.some(k => k === "")){
+				alert("모든 필드의 key 값을 입력해주세요.")
+				result = false;
+			}
+			
+			if(new Set(keys).size !== keys.length){
+				alert("key 값이 중복되었습니다. 각 필드는 고유한 key를 가져야 합니다.");
+				result = false;
+			}
+			
+			// JSON으로 조립하여 실제 제출값에 반영
+			document.getElementById("forSchema").value = buildSchemaFromEditor();
+		}
+	
+		if(!result){
+			if(focusElement) focusElement.focus();
+			return false;
+		}
+		
+		if(!valid){
+			alert("중복된 양식 코드는 사용할 수 없습니다.");
+			document.getElementById("forCode").focus();
+			return false;
+		}
+		return true;
+	}
+	
+	/////////////////////////////// 빈칸 처리 ///////////////////////////////
+	
+	/////////////////////////////// 양식 중복 처리 ///////////////////////////////
+	
+	window.addEventListener("load", function(){
+		let forCode = document.getElementById("forCode"); // forCode 가져오기
+		let tforCode = document.querySelector(".tforCode"); // 입력 결과 출력할 부분 가져오기
+		let comIdElement = document.getElementById("comId");
+		
+		// 검증 로직
+		function checkFormCode(){
+			let value = forCode.value.trim();
+			let comIdVal = comIdElement ? comIdElement.value.trim() : "";
+			
+			// 원래 코드 그대로면 통과 처리
+			if(value === originalCode){
+				tforCode.textContent = "";
+				tforCode.className = "tforCode";
+				forCode.classList.remove("is-valid", "is-invalid");
+				valid = true;
+				return;
+			}
+			
+			valid = false; // 초기화
+			
+			// 양식 검사에 회사의 id값이 필요해 먼저 하도록 유도
+			if(comIdVal === ""){
+				// 값이 아직 없거나 회사 선택 이벤트에서 호출된경우 리턴
+				if(value === "") return;
+				tforCode.textContent = "양식을 추가할 회사를 먼저 검색하여 선택해주세요.";
+				tforCode.className = "text-danger fw-semibold mt-1 tforCode";
+				forCode.classList.remove("is-valid");
+				forCode.classList.add("is-invalid");
+				return;
+			}
+			
+			if(value === ""){
+				tforCode.textContent = "";
+				tforCode.className = "tforCode";
+				forCode.classList.remove("is-valid", "is-invalid");
+				return;
+			}
+		
+			const currentForId = document.querySelector('input[name="forId"]').value;
+			fetch(`/appr/checkCode?code=${encodeURIComponent(value)}&comId=${encodeURIComponent(comIdVal)}&forId=${encodeURIComponent(currentForId)}`)
+			.then( response => response.json() )
+			.then( data => {
+				
+				// 초기화
+				tforCode.className = "fw-semibold mt-1 tforCode";
+                forCode.classList.remove("is-valid", "is-invalid");
+                
+				if(data.checkCode){
+					tforCode.textContent = "사용 가능한 양식코드 입니다" ;
+					tforCode.classList.add("valid-feedback");
+					forCode.classList.add("is-valid");
+					valid = true;
+				}
+				else{
+					tforCode.textContent = "중복된 양식코드 입니다" ;
+					tforCode.classList.add("invalid-feedback");
+					forCode.classList.add("is-invalid");
+					valid = false;
+				}
+			})
+			.catch( err => {
+				tforCode.textContent = "서버 오류" ;
+				tforCode.classList.add("invalid-feedback");
+				forCode.classList.add("is-invalid");
+				valid = false;
+			});
+		}
+		
+		// 양식 코드 입력시
+		forCode.addEventListener("keyup", checkFormCode);
+		
+		// 바깥에도 호출할수 있게 노출
+		window.checkFormCode = checkFormCode;
+	});
+	
+	/////////////////////////////// 양식 중복 처리 ///////////////////////////////
+	
+</script>
+</main>
+</body>
+</html>

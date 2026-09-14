@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      layout:decorate="~{fragments/layout}">
+<head>
+    <title>자원 관리</title>
+</head>
+<body data-page="reslist">
+<main layout:fragment="content" class="sb-content">
+  <div class="sb-page-head">
+    <div class="sb-page-head__txt">
+      <div class="sb-breadcrumb">
+        <i class="bi bi-house-door"></i> 홈
+        <i class="bi bi-chevron-right"></i> 자산
+        <i class="bi bi-chevron-right"></i> 자원 관리
+      </div>
+      <h1>자원 관리</h1>
+      <p>회의실, 장비, 차량 등 예약 가능한 자원을 등록하고 관리합니다.</p>
+    </div>
+    <div class="sb-page-head__actions">
+      <a th:href="@{/res/insert}" class="btn btn-sb btn-sm">
+        <i class="bi bi-plus-lg"></i> 자원 등록
+      </a>
+      <!-- <a th:href="@{/resv/insert}" class="btn btn-ghost btn-sm">
+        <i class="bi bi-calendar2-plus"></i> 예약 신청
+      </a> -->
+    </div>
+  </div>
+
+  <div th:if="${error == 'badPassword'}" class="alert alert-danger">비밀번호가 일치하지 않아 삭제되지 않았습니다.</div>
+  <div th:if="${error == 'hasReservations'}" class="alert alert-danger">예약 이력이 있는 자원은 먼저 예약 내역을 정리해야 삭제할 수 있습니다.</div>
+
+  <!-- <div class="row g-3 mb-3">
+    <div class="col-6 col-md-3">
+      <div class="sb-card p-3 d-flex align-items-center gap-3">
+        <span class="sb-stat__ico tone-blue"><i class="bi bi-collection"></i></span>
+        <div>
+          <div class="text-faint" style="font-size:12px">등록 자원</div>
+          <div style="font-weight:750;font-size:17px" th:text="${paging?.listtotal ?: 0}"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="sb-card p-3 d-flex align-items-center gap-3">
+        <span class="sb-stat__ico tone-violet"><i class="bi bi-door-open"></i></span>
+        <div>
+          <div class="text-faint" style="font-size:12px">회의실/공간</div>
+          <div style="font-weight:750;font-size:17px">ROOM</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="sb-card p-3 d-flex align-items-center gap-3">
+        <span class="sb-stat__ico tone-amber"><i class="bi bi-laptop"></i></span>
+        <div>
+          <div class="text-faint" style="font-size:12px">장비</div>
+          <div style="font-weight:750;font-size:17px">EQUIPMENT</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="sb-card p-3 d-flex align-items-center gap-3">
+        <span class="sb-stat__ico tone-green"><i class="bi bi-car-front"></i></span>
+        <div>
+          <div class="text-faint" style="font-size:12px">차량</div>
+          <div style="font-weight:750;font-size:17px">VEHICLE</div>
+        </div>
+      </div>
+    </div>
+  </div> -->
+
+  <div class="sb-card">
+    <div class="sb-card__head">
+      <h2>자원 목록</h2>
+      <span class="sub">검색 조건에 맞는 자원을 확인합니다.</span>
+    </div>
+    <div class="sb-card__body">
+      <form th:action="@{/res/list}" method="get" class="row g-2 align-items-center">
+        <div class="col-12 col-md-4">
+          <input type="text" name="keyword" th:value="${search.keyword}" class="form-control" placeholder="자원명 또는 자원코드 검색">
+        </div>
+        <div class="col-6 col-md-2">
+          <select name="resType" class="form-select">
+            <option value="" th:selected="${#strings.isEmpty(search.resType)}">전체 유형</option>
+            <option value="ROOM" th:selected="${search.resType == 'ROOM'}">회의실</option>
+            <option value="EQUIPMENT" th:selected="${search.resType == 'EQUIPMENT'}">장비</option>
+            <option value="VEHICLE" th:selected="${search.resType == 'VEHICLE'}">차량</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-2">
+          <select name="resStatus" class="form-select">
+            <option value="" th:selected="${#strings.isEmpty(search.resStatus)}">전체 상태</option>
+            <option value="AVAILABLE" th:selected="${search.resStatus == 'AVAILABLE'}">사용가능</option>
+            <option value="MAINTENANCE" th:selected="${search.resStatus == 'MAINTENANCE'}">점검중</option>
+            <option value="DISABLED" th:selected="${search.resStatus == 'DISABLED'}">사용중지</option>
+          </select>
+        </div>
+        <div class="col-12 col-md-auto">
+          <button type="submit" class="btn btn-sb">
+            <i class="bi bi-search"></i> 검색
+          </button>
+        </div>
+      </form>
+    </div>
+    <div class="sb-card__body--flush">
+      <table class="sb-table">
+        <thead>
+          <tr>
+            <th style="width:100px">자원코드</th>
+            <th>자원명</th>
+            <th style="width:90px">유형</th>
+            <th style="width:160px">위치</th>
+            <th class="num" style="width:70px">수량</th>
+            <th style="width:100px">상태</th>
+            <th style="width:110px">담당자</th>
+            <th style="width:80px; text-align:center">관리</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr th:if="${#lists.isEmpty(resourceList)}">
+            <td colspan="8" class="text-center text-faint py-4">등록된 자원이 없습니다.</td>
+          </tr>
+          <tr th:each="r : ${resourceList}">
+            <td><b th:text="${r.resCode}"></b></td>
+            <td th:text="${r.resName}"></td>
+            <td>
+              <span th:switch="${r.resType}">
+                <span th:case="'ROOM'" class="sb-badge sb-badge--blue">회의실</span>
+                <span th:case="'EQUIPMENT'" class="sb-badge sb-badge--amber">장비</span>
+                <span th:case="'VEHICLE'" class="sb-badge sb-badge--green">차량</span>
+                <span th:case="*" class="sb-badge" th:text="${r.resType}"></span>
+              </span>
+            </td>
+            <td class="text-faint" style="font-size:12.5px" th:text="${#strings.isEmpty(r.location) ? '-' : r.location}"></td>
+            <td class="num" th:text="${r.quantity}"></td>
+            <td>
+              <span th:switch="${r.resStatus}">
+                <span th:case="'AVAILABLE'" class="sb-badge sb-badge--green">사용가능</span>
+                <span th:case="'MAINTENANCE'" class="sb-badge sb-badge--amber">점검중</span>
+                <span th:case="'DISABLED'" class="sb-badge sb-badge--gray">사용중지</span>
+                <span th:case="*" class="sb-badge sb-badge--gray" th:text="${r.resStatus}"></span>
+              </span>
+            </td>
+            <td style="font-size:12.5px" th:text="${#strings.isEmpty(r.managerEmpName) ? '-' : r.managerEmpName}"></td>
+            <td class="text-end">
+            <div class="d-flex justify-content-end gap-1">
+              <a class="sb-iconbtn"
+                 th:href="@{/res/detail(resId=${r.resId})}"
+                 title="상세보기">
+              	<i class="bi bi-book"></i>
+              </a>
+                <a th:href="@{/res/update(resId=${r.resId})}" 
+                   sec:authorize="hasRole('ADMIN')"
+                   class="sb-iconbtn"
+                   title="수정">
+                <i class="bi bi-pencil"></i>
+                </a>
+                 <button type="button" class="sb-iconbtn res-del"
+                    sec:authorize="hasRole('ADMIN')"
+					th:attr="data-id=${r.resId}, data-name=${r.resName}, data-reservationcount=${r.resvCount != null ? r.resvCount : 0}"
+					style="color:var(--sb-red)"
+                    title="삭제">
+                    <i class="bi bi-trash3"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  
+    <!-- 페이지네이션 -->
+    <div class="d-flex align-items-center justify-content-between px-3 py-2"
+         style="border-top:1px solid var(--sb-border)">
+        <span class="text-faint" style="font-size:12.5px">
+            총 <b th:text="${paging?.listtotal ?: 0}"></b>개 자원
+        </span>
+
+        <nav th:if="${(paging?.pagetotal ?: 0) > 1}" aria-label="페이지 이동">
+            <ul class="pagination pagination-sm mb-0">
+                <li class="page-item" th:classappend="${paging.start <= 1} ? 'disabled'">
+                    <a class="page-link"
+                       th:href="@{/res/list(keyword=${search.keyword}, resType=${search.resType}, resStatus=${search.resStatus}, pstartno=${paging.start - 1})}"
+                       aria-label="이전"><i class="bi bi-chevron-left"></i></a>
+                </li>
+
+                <li class="page-item" th:each="p : ${#numbers.sequence(paging.start, paging.end)}"
+                    th:classappend="${p == paging.current} ? 'active'">
+                    <a class="page-link"
+                       th:href="@{/res/list(keyword=${search.keyword}, resType=${search.resType}, resStatus=${search.resStatus}, pstartno=${p})}"
+                       th:text="${p}"></a>
+                </li>
+
+                <li class="page-item" th:classappend="${paging.end >= paging.pagetotal} ? 'disabled'">
+                    <a class="page-link"
+                       th:href="@{/res/list(keyword=${search.keyword}, resType=${search.resType}, resStatus=${search.resStatus}, pstartno=${paging.end + 1})}"
+                       aria-label="다음"><i class="bi bi-chevron-right"></i></a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+
+  <!-- [변경점 · 원복] AJAX fetch용 빈 컨테이너 -> 정적 모달을 th:replace로 한 번만 포함 -->
+  <div th:replace="~{res/modal/delModal :: deleteModal}">삭제 모달 (fragment 로딩)</div>
+
+</main>
+
+<th:block layout:fragment="script">
+<script th:inline="javascript">
+(function () {
+  "use strict";
+  const DELETE_URL = /*[[@{/res/delete}]]*/ "/res/delete";
+  const LIST_URL   = /*[[@{/res/list}]]*/ "/res/list";
+
+  const modalEl      = document.getElementById("resDelModal");
+  const headerEl     = document.getElementById("resDelHeaderLabel");
+  const iconBoxEl    = document.getElementById("resDelIconBox");
+  const nameEl       = document.getElementById("resDelName");
+  const mainWarnEl   = document.getElementById("resDelMainWarning");
+  const resvWarnEl   = document.getElementById("resDelReservationWarn");
+  const resvWarnText = document.getElementById("resDelReservationWarnText");
+  const pwGroupEl    = document.getElementById("resDelPwGroup");
+  const empPass      = document.getElementById("empPass");
+  const pwErr        = document.getElementById("delPwErr");
+  const pwErrMsg     = document.getElementById("delPwErrMsg");
+  const cancelBtn    = document.getElementById("resDelCancelBtn");
+  const yesBtn       = document.getElementById("resDelYes");
+  const yesLabelEl   = document.getElementById("resDelYesLabel");
+  const csrfInput    = document.getElementById("resCsrfToken");
+
+  let curResId = null;
+  const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+
+  /* [변경점 · dept/deptTreeTab.html의 openDelModal과 동일한 아키텍처]
+     서버에 AJAX로 물어보지 않고, 클릭된 버튼의 data-reservationcount만 보고 즉시 상태를 바꿈. */
+  function openDelModal(btn) {
+    const resId    = btn.dataset.id;
+    const resName  = btn.dataset.name;
+    const resvCount = +btn.dataset.reservationcount || 0;
+
+    curResId = resId;
+    nameEl.textContent = resName;
+    empPass.value = "";
+    empPass.classList.remove("is-invalid");
+    pwErr.style.display = "none";
+
+    if (resvCount > 0) {
+      /* ① 차단 상태 — 서버에서도 막히는 요청이므로 아예 보내지 않는다 */
+      headerEl.innerHTML   = '<i class="bi bi-x-circle me-1"></i>삭제할 수 없습니다';
+      headerEl.style.color = "var(--sb-red)";
+      iconBoxEl.style.background = "var(--sb-red-soft)";
+      iconBoxEl.style.color      = "var(--sb-red)";
+      iconBoxEl.innerHTML        = '<i class="bi bi-slash-circle"></i>';
+      mainWarnEl.innerHTML = '이 자원에는 진행 중인 예약이 <b>' + resvCount + '</b>건 있습니다.';
+
+      resvWarnEl.style.display = "";
+      resvWarnText.textContent = "예약이 있는 동안에는 삭제(해체)를 진행할 수 없습니다.";
+      pwGroupEl.style.display  = "none";
+
+      cancelBtn.textContent = "닫기";
+      yesBtn.style.display  = "none"; /* 실패할 요청이므로 확인 버튼 자체를 숨김 */
+    } else {
+      /* ② 예약 없음 — 비밀번호 확인 후 삭제 */
+      yesBtn.style.display = "";
+      headerEl.innerHTML   = '<i class="bi bi-shield-exclamation me-1"></i>자원 삭제';
+      headerEl.style.color = "var(--sb-red)";
+      iconBoxEl.style.background = "";
+      iconBoxEl.style.color      = "var(--sb-red)";
+      iconBoxEl.innerHTML        = '<i class="bi bi-box-seam"></i>';
+      mainWarnEl.innerHTML = '계속하려면 <b>비밀번호</b>를 입력하세요.';
+
+      resvWarnEl.style.display = "none";
+      pwGroupEl.style.display  = "";
+
+      cancelBtn.textContent = "취소";
+      yesLabelEl.textContent = "삭제 확인";
+    }
+
+    modal.show();
+    if (resvCount === 0) setTimeout(() => empPass.focus(), 300);
+  }
+
+  document.addEventListener("click", function (e) {
+    const btn = e.target.closest(".res-del");
+    if (!btn) return;
+    openDelModal(btn);
+  });
+
+  empPass.addEventListener("input", () => {
+    pwErr.style.display = "none";
+    empPass.classList.remove("is-invalid");
+  });
+  empPass.addEventListener("keydown", ev => {
+    if (ev.key === "Enter") { ev.preventDefault(); yesBtn.click(); }
+  });
+
+  yesBtn.addEventListener("click", () => {
+    // 차단 상태에서는 yesBtn 자체가 숨겨져 있어 여기 도달하지 않음(정상적인 경우)
+    fetch(DELETE_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: "resId=" + encodeURIComponent(curResId)
+          + "&empPass=" + encodeURIComponent(empPass.value)
+          + "&" + csrfInput.name + "=" + encodeURIComponent(csrfInput.value)
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        location.href = LIST_URL;
+      } else {
+        pwErrMsg.textContent = data.message;
+        pwErr.style.display = "";
+        empPass.classList.add("is-invalid");
+        empPass.focus();
+      }
+    })
+    .catch(() => alert("삭제 처리 중 오류가 발생했습니다."));
+  });
+})();
+</script>
+</th:block>
+</body>
+</html>

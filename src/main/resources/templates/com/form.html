@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{fragments/layout}">
+<head>
+    <title>회사 등록</title>
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+</head>
+<body>
+<main layout:fragment="content" class="sb-content">
+<!-- 페이지 헤더 -->
+<div class="sb-page-head">
+    <div class="sb-page-head__txt">
+        <div class="sb-breadcrumb">
+            <a th:href="@{/}">홈</a>
+            <i class="bi bi-chevron-right"></i>
+            <a th:href="@{/com/list}">회사 관리</a>
+            <i class="bi bi-chevron-right"></i>
+            등록
+        </div>
+        <h1>회사 등록</h1>
+        <p>새로운 회사를 시스템에 등록합니다.</p>
+    </div>
+    <div class="sb-page-head__actions">
+    	<button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#ocrModal">
+            <i class="bi bi-camera"></i> 사업자등록증으로 자동입력
+        </button>
+        <a th:href="@{/com/list}" class="btn btn-ghost btn-sm">
+            <i class="bi bi-arrow-left"></i> 목록으로
+        </a>
+    </div>
+</div>
+
+<!-- 서버 측 오류 메시지 출력 -->
+<div th:if="${not #strings.isEmpty(errorMsg)}" class="alert alert-danger alert-dismissible fade show" role="alert">
+    <i class="bi bi-exclamation-triangle-fill me-1"></i>
+    <span th:text="${errorMsg}"></span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+
+<form method="post"
+      th:action="@{/com/add}"
+      enctype="multipart/form-data"
+      id="companyForm"
+      onsubmit="return validateForm()">
+
+    <!-- ① 업종 분류 -->
+    <div class="sb-card mb-3">
+        <div class="sb-card__head">
+            <h2><i class="bi bi-tag me-2 text-soft"></i>업종 분류</h2>
+        </div>
+        <div class="sb-card__body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="sb-form-label">
+                        업종 <span style="color:var(--sb-red)">*</span>
+                    </label>
+                    <select class="form-select" id="industryGrpCode" name="industryGrpCode"
+                            onchange="syncIndustryCode()" required>
+                        <option value="">-- 업종 선택 --</option>
+                        <option value="C" th:selected="${com?.industryGrpCode == 'C'}">제조업</option>
+                        <option value="F" th:selected="${com?.industryGrpCode == 'F'}">건설업</option>
+                        <option value="G" th:selected="${com?.industryGrpCode == 'G'}">도매 및 소매업</option>
+                        <option value="H" th:selected="${com?.industryGrpCode == 'H'}">운수 및 창고업</option>
+                        <option value="I" th:selected="${com?.industryGrpCode == 'I'}">숙박 및 음식점업</option>
+                        <option value="J" th:selected="${com?.industryGrpCode == 'J'}">정보통신업</option>
+                        <option value="K" th:selected="${com?.industryGrpCode == 'K'}">금융 및 보험업</option>
+                        <option value="M" th:selected="${com?.industryGrpCode == 'M'}">전문, 과학 및 기술 서비스업</option>
+                        <option value="N" th:selected="${com?.industryGrpCode == 'N'}">사업시설관리, 사업지원 및 임대 서비스업</option>
+                        <option value="S" th:selected="${com?.industryGrpCode == 'S'}">협회 및 단체, 수리 및 기타 개인 서비스업</option>
+                    </select>
+                    <div class="invalid-feedback">업종을 선택하세요.</div>
+                </div>
+
+                <!-- industryCode : industryGrpCode에 종속되는 세부업종 select -->
+                <div class="col-md-6">
+                    <label class="sb-form-label">
+                        세부 업종 <span style="color:var(--sb-red)">*</span>
+                    </label>
+                    <select class="form-select" id="industryCode" name="industryCode" disabled required>
+                        <option value="">-- 업종을 먼저 선택하세요 --</option>
+                    </select>
+                    <div class="invalid-feedback" id="eIndustryCode">세부 업종을 선택하세요.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ② 기본 정보 -->
+    <div class="sb-card mb-3">
+        <div class="sb-card__head">
+            <h2><i class="bi bi-building me-2 text-soft"></i>기본 정보</h2>
+            <div class="right">
+                <span class="sql-chip"><i class="bi bi-database"></i>company</span>
+            </div>
+        </div>
+        <div class="sb-card__body">
+            <div class="row g-3">
+                <!-- com_name -->
+                <div class="col-md-8">
+                    <label class="sb-form-label">
+                        회사명 <span style="color:var(--sb-red)">*</span>
+                    </label>
+                    <input type="text" class="form-control" id="comName" name="comName"
+                           placeholder="예: (주)선빈테크놀로지" maxlength="100"
+                           th:value="${com?.comName}" required>
+                    <div class="invalid-feedback">회사명은 필수입니다. (최대 100자)</div>
+                </div>
+                <!-- com_ceo -->
+                <div class="col-md-4">
+                    <label class="sb-form-label">
+                        대표자 <span style="color:var(--sb-red)">*</span>
+                    </label>
+                    <input type="text" class="form-control" id="comCeo" name="comCeo"
+                           placeholder="대표자명" maxlength="100"
+                           th:value="${com?.comCeo}" required>
+                    <div class="invalid-feedback">대표자명은 필수입니다.</div>
+                </div>
+                <!-- biz_no -->
+                <div class="col-md-6">
+                    <label class="sb-form-label">
+                        사업자등록번호 <span style="color:var(--sb-red)">*</span>
+                    </label>
+                    <div class="input-group has-validation">
+                        <input type="text" class="form-control" id="bizNo" name="bizNo"
+                               placeholder="000-00-00000" maxlength="45"
+                               onblur="checkBizNo()"
+                               th:value="${com?.bizNo}" required>
+                        <span class="input-group-text" id="bizNoSpinner" style="display:none;">
+                            <span class="spinner-border spinner-border-sm text-secondary"></span>
+                        </span>
+                        <div class="invalid-feedback">사업자번호 형식이 올바르지 않거나 이미 사용 중입니다. (예: 123-45-67890)</div>
+                        <div class="valid-feedback">사용 가능한 사업자번호입니다.</div>
+                    </div>
+                    <div class="text-faint mt-1" style="font-size:12px">형식: 123-45-67890</div>
+                </div>
+                <!-- com_tel -->
+                <div class="col-md-6">
+                    <label class="sb-form-label"> 대표 전화 </label>
+                    <input type="tel" class="form-control" id="comTel" name="comTel"
+                           placeholder="02-0000-0000" maxlength="100"
+                           th:value="${com?.comTel}">
+                    <div class="text-faint mt-1" style="font-size:12px">선택 입력</div>
+                </div>
+
+                <!-- 개업일자: DB 저장 컬럼은 아니며, 국세청 진위확인 API 호출에만 사용되는 임시 입력값 -->
+                <div class="col-md-6">
+                    <label class="sb-form-label"> 개업일자 <span style="color:var(--sb-red)">*</span></label>
+                    <input type="date" class="form-control" id="startDt" name="startDt" required>
+                    <div class="text-faint mt-1" style="font-size:12px">
+                        진위확인 시에만 사용되며 DB에는 저장되지 않습니다.
+                    </div>
+                </div>
+
+                <!-- 사업자등록번호 진위확인 (국세청 API) -->
+                <div class="col-md-6 d-flex align-items-end">
+                    <div class="w-100">
+                        <button type="button" class="btn btn-outline-secondary w-100" id="verifyBizNoBtn" onclick="verifyBizNo()">
+                            <i class="bi bi-patch-check"></i> 국세청 진위확인
+                        </button>
+                        <div id="bizNoVerifyResult" class="mt-1" style="font-size:13px;">
+                            <span class="text-faint"><i class="bi bi-info-circle"></i> 등록하려면 진위확인이 필요합니다.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ③ 회사 로고 -->
+    <div class="sb-card mb-3">
+        <div class="sb-card__head">
+            <h2><i class="bi bi-image me-2 text-soft"></i>회사 로고</h2>
+            <span class="sub">PNG · JPG · SVG · WEBP, 최대 2MB</span>
+        </div>
+        <div class="sb-card__body">
+            <div class="logo-zone">
+                <div class="logo-preview" id="logoPreviewWrap">
+                    <img th:if="${not #strings.isEmpty(com?.comLogo)}" id="logoPreview"
+                         th:src="@{${com.comLogo}}" alt="로고 미리보기"
+                         style="width:100%;height:100%;object-fit:cover">
+                    <i th:unless="${not #strings.isEmpty(com?.comLogo)}" id="logoPlaceholder" class="bi bi-building"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <input type="file" class="form-control" id="comLogo" name="logoFile"
+                           accept="image/png, image/jpeg, image/svg+xml, image/webp"
+                           onchange="previewLogo(this)">
+                    <div class="text-faint mt-1" style="font-size:12px">
+                        정사각형 이미지 권장 · 업로드된 파일 경로를 VARCHAR(500)으로 저장 · 미입력 시 기본 이미지 사용
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 폼 버튼 -->
+    <div class="d-flex gap-2 justify-content-end mt-2">
+        <button type="reset" class="btn btn-ghost" onclick="resetForm()">초기화</button>
+        <a th:href="@{/com/list}" class="btn btn-ghost">목록</a>
+        <button type="submit" class="btn btn-sb">
+            <i class="bi bi-check-lg"></i> 등록하기
+        </button>
+    </div>
+</form>
+
+<!-- OCR 자동입력 모달: 별도 util 파일 포함 -->
+<div th:replace="~{com/util/ocrModal :: ocrModal}"></div>
+
+<!-- 업종 대분류/세부업종 공용 매핑 (form.html, edit.html, com-ocr.js 공용) -->
+<script th:src="@{/js/industry-code.js}"></script>
+
+<script th:inline="javascript">
+(function () {
+    "use strict";
+
+    /* 마지막으로 "진위확인 성공"했을 때의 bizNo/startDt/ceoName 스냅샷.
+       null이면 "아직 진위확인 안 됨" 또는 "확인 이후 값이 바뀌어 무효화됨" 상태. */
+    let verifiedSnapshot = null;
+
+    function currentBizFields() {
+        return {
+            bizNo:   document.getElementById('bizNo').value.trim(),
+            startDt: document.getElementById('startDt').value.trim(),
+            ceoName: document.getElementById('comCeo').value.trim()
+        };
+    }
+
+    function isSameAsVerified(fields) {
+        return verifiedSnapshot !== null
+            && verifiedSnapshot.bizNo === fields.bizNo
+            && verifiedSnapshot.startDt === fields.startDt
+            && verifiedSnapshot.ceoName === fields.ceoName;
+    }
+
+    /* 진위확인 이후 관련 필드(bizNo/startDt/comCeo) 값이 바뀌면 스냅샷을 무효화하고
+       "다시 진위확인 필요" 상태로 되돌린다. */
+    function invalidateVerificationIfChanged() {
+        if (verifiedSnapshot === null) return; // 애초에 확인된 적 없으면 할 일 없음
+        if (isSameAsVerified(currentBizFields())) return; // 값이 그대로면 유지
+
+        verifiedSnapshot = null;
+        const resultEl = document.getElementById('bizNoVerifyResult');
+        const verifyBtn = document.getElementById('verifyBizNoBtn');
+        resultEl.innerHTML = '<span class="text-warning"><i class="bi bi-arrow-repeat"></i> 정보가 변경되었습니다. 진위확인을 다시 진행해주세요.</span>';
+        verifyBtn.classList.remove('btn-outline-secondary', 'btn-outline-success');
+        verifyBtn.classList.add('btn-outline-warning');
+    }
+
+    ['bizNo', 'startDt', 'comCeo'].forEach(function (id) {
+        document.getElementById(id).addEventListener('input', invalidateVerificationIfChanged);
+    });
+
+    /* 업종 대분류(industryGrpCode) → 세부업종(industryCode) select 렌더링은
+       공용 모듈(js/industry-code.js)의 IndustryCode.renderOptions()를 사용한다. */
+
+    /* 대분류 select onchange 핸들러: 대분류가 바뀌면 세부업종은 새로 선택하도록 초기화 */
+    function syncIndustryCode() {
+        IndustryCode.renderOptions('industryGrpCode', 'industryCode', '');
+    }
+    window.syncIndustryCode = syncIndustryCode;
+
+    /* 최초 로드 시: 수정 화면이면 저장된 세부업종 값을 그대로 선택 상태로 복원 */
+    IndustryCode.renderOptions('industryGrpCode', 'industryCode', /*[[${com?.industryCode}]]*/ '');
+
+
+    function previewLogo(input) {
+        const file = input.files && input.files[0];
+        if (!file) return;
+        if (file.size > 2 * 1024 * 1024) {
+            alert('파일 크기는 2MB 이하여야 합니다.');
+            input.value = '';
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            document.getElementById('logoPreviewWrap').innerHTML =
+                '<img id="logoPreview" src="' + e.target.result + '" alt="로고 미리보기"' +
+                ' style="width:100%;height:100%;object-fit:cover">';
+        };
+        reader.readAsDataURL(file);
+    }
+    window.previewLogo = previewLogo;
+
+    /* 초기화 버튼 — 폼 reset 후 미리보기·업종 선택·진위확인 상태도 원복 */
+    function resetForm() {
+        document.getElementById('logoPreviewWrap').innerHTML =
+            '<i id="logoPlaceholder" class="bi bi-building"></i>';
+        document.getElementById('industryGrpCode').value = '';
+        IndustryCode.renderOptions('industryGrpCode', 'industryCode', '');
+        document.querySelectorAll('.is-valid, .is-invalid')
+                .forEach(el => el.classList.remove('is-valid', 'is-invalid'));
+
+        verifiedSnapshot = null;
+        const verifyBtn = document.getElementById('verifyBizNoBtn');
+        verifyBtn.classList.remove('btn-outline-warning', 'btn-outline-danger', 'btn-outline-success');
+        verifyBtn.classList.add('btn-outline-secondary');
+        document.getElementById('bizNoVerifyResult').innerHTML =
+            '<span class="text-faint"><i class="bi bi-info-circle"></i> 등록하려면 진위확인이 필요합니다.</span>';
+    }
+    window.resetForm = resetForm;
+
+    function validateForm() {
+        let valid = true;
+
+        const grpSel = document.getElementById('industryGrpCode');
+        if (!grpSel.value) {
+            setInvalid(grpSel, '업종을 선택하세요.');
+            valid = false;
+        } else {
+            setValid(grpSel);
+        }
+
+        const codeSel = document.getElementById('industryCode');
+        if (!codeSel.value) {
+            setInvalid(codeSel, '세부 업종을 선택하세요.');
+            valid = false;
+        } else {
+            setValid(codeSel);
+        }
+
+        const comNameEl = document.getElementById('comName');
+        if (!comNameEl.value.trim()) {
+            setInvalid(comNameEl, '회사명은 필수입니다. (최대 100자)');
+            valid = false;
+        } else {
+            setValid(comNameEl);
+        }
+
+        const comCeoEl = document.getElementById('comCeo');
+        if (!comCeoEl.value.trim()) {
+            setInvalid(comCeoEl, '대표자명은 필수입니다.');
+            valid = false;
+        } else {
+            setValid(comCeoEl);
+        }
+
+        const bizNoEl      = document.getElementById('bizNo');
+        const bizNoPattern = /^\d{3}-\d{2}-\d{5}$/;
+        if (!bizNoPattern.test(bizNoEl.value.trim())) {
+            setInvalid(bizNoEl, '사업자번호 형식이 올바르지 않습니다. (예: 123-45-67890)');
+            valid = false;
+        } else if (bizNoEl.classList.contains('is-invalid')) {
+            valid = false;
+        }
+
+        const startDtEl = document.getElementById('startDt');
+        if (!startDtEl.value.trim()) {
+            setInvalid(startDtEl, '개업일자는 필수입니다.');
+            valid = false;
+        } else {
+            setValid(startDtEl);
+        }
+
+        /* 진위확인이 "현재 입력값" 기준으로 성공한 상태가 아니면 제출 차단 */
+        const resultEl  = document.getElementById('bizNoVerifyResult');
+        const verifyBtn = document.getElementById('verifyBizNoBtn');
+        if (!isSameAsVerified(currentBizFields())) {
+            resultEl.innerHTML = '<span class="text-danger"><i class="bi bi-exclamation-triangle"></i> 사업자등록번호 진위확인을 먼저 완료해주세요.</span>';
+            verifyBtn.classList.remove('btn-outline-secondary', 'btn-outline-warning', 'btn-outline-success');
+            verifyBtn.classList.add('btn-outline-danger');
+            resultEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            valid = false;
+        }
+
+        return valid;
+    }
+    window.validateForm = validateForm;
+
+    function checkBizNo() {
+        const bizNoEl      = document.getElementById('bizNo');
+        const spinner      = document.getElementById('bizNoSpinner');
+        const bizNo        = bizNoEl.value.trim();
+        const bizNoPattern = /^\d{3}-\d{2}-\d{5}$/;
+
+        if (!bizNoPattern.test(bizNo)) {
+            setInvalid(bizNoEl, '사업자번호 형식이 올바르지 않습니다. (예: 123-45-67890)');
+            return;
+        }
+
+        spinner.style.display = '';
+        bizNoEl.classList.remove('is-valid', 'is-invalid');
+
+        const CHECK_BIZNO_URL = "/com/checkBizNo";
+
+        fetch(CHECK_BIZNO_URL + "?bizNo=" + encodeURIComponent(bizNo))
+            .then(res => res.json())
+            .then(data => {
+                spinner.style.display = 'none';
+                if (data.duplicate) {
+                    setInvalid(bizNoEl, '이미 사용 중인 사업자번호입니다.');
+                } else {
+                    setValid(bizNoEl);
+                }
+            })
+            .catch(() => {
+                spinner.style.display = 'none';
+                console.error('사업자번호 중복 체크 중 오류가 발생했습니다.');
+            });
+    }
+    window.checkBizNo = checkBizNo;
+
+    /* 국세청 사업자등록정보 진위확인 (POST /api/util/bizno/verify) */
+    const VERIFY_BIZNO_URL = "/api/util/bizno/verify";
+
+    function verifyBizNo() {
+        const fields = currentBizFields();
+        const resultEl = document.getElementById('bizNoVerifyResult');
+        const btn = document.getElementById('verifyBizNoBtn');
+
+        const bizNoPattern = /^\d{3}-\d{2}-\d{5}$/;
+        if (!bizNoPattern.test(fields.bizNo)) {
+            resultEl.innerHTML = '<span class="text-danger"><i class="bi bi-x-circle"></i> 사업자등록번호 형식을 먼저 확인해주세요.</span>';
+            return;
+        }
+        if (!fields.startDt) {
+            resultEl.innerHTML = '<span class="text-danger"><i class="bi bi-x-circle"></i> 개업일자를 입력해주세요.</span>';
+            return;
+        }
+        if (!fields.ceoName) {
+            resultEl.innerHTML = '<span class="text-danger"><i class="bi bi-x-circle"></i> 대표자명을 먼저 입력해주세요.</span>';
+            return;
+        }
+
+        btn.disabled = true;
+        btn.classList.remove('btn-outline-warning', 'btn-outline-danger', 'btn-outline-success');
+        btn.classList.add('btn-outline-secondary');
+        resultEl.innerHTML = '<span class="text-faint"><span class="spinner-border spinner-border-sm"></span> 국세청에 확인 중...</span>';
+
+        const csrfToken  = document.querySelector('meta[name="_csrf"]')?.content;
+        const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content;
+        const fetchHeaders = { 'Content-Type': 'application/json' };
+        if (csrfToken && csrfHeader) {
+            fetchHeaders[csrfHeader] = csrfToken;
+        }
+
+        fetch(VERIFY_BIZNO_URL, {
+            method: 'POST',
+            headers: fetchHeaders,
+            body: JSON.stringify({ bizNo: fields.bizNo, startDt: fields.startDt, ceoName: fields.ceoName })
+        })
+        .then(res => res.json())
+        .then(data => {
+            btn.disabled = false;
+
+            if (!data || data.status_code !== 'OK' || !data.data || !data.data.length) {
+                verifiedSnapshot = null;
+                btn.classList.remove('btn-outline-secondary', 'btn-outline-warning');
+                btn.classList.add('btn-outline-danger');
+                resultEl.innerHTML = '<span class="text-danger"><i class="bi bi-exclamation-triangle"></i> 진위확인 서비스 응답을 확인할 수 없습니다.</span>';
+                return;
+            }
+
+            const item = data.data[0];
+            if (item.valid === '01') {
+                /* [핵심] 검증 성공 시점의 값을 스냅샷으로 저장 -> 이후 값이 바뀌면 무효화됨 */
+                verifiedSnapshot = { bizNo: fields.bizNo, startDt: fields.startDt, ceoName: fields.ceoName };
+
+                let extra = '';
+                resultEl.innerHTML = '<span class="text-success"><i class="bi bi-check-circle-fill"></i> 국세청에 등록된 사업자 정보와 일치합니다.' + extra + '</span>';
+                setValid(document.getElementById('bizNo'));
+                btn.classList.remove('btn-outline-warning', 'btn-outline-danger');
+                btn.classList.add('btn-outline-success');
+            } else {
+                verifiedSnapshot = null;
+                const msg = item.valid_msg || '입력하신 정보와 일치하는 사업자를 찾을 수 없습니다.';
+                resultEl.innerHTML = '<span class="text-danger"><i class="bi bi-x-circle"></i> ' + escapeHtml(msg) + '</span>';
+                setInvalid(document.getElementById('bizNo'), msg);
+                btn.classList.remove('btn-outline-secondary', 'btn-outline-warning', 'btn-outline-success');
+                btn.classList.add('btn-outline-danger');
+            }
+        })
+        .catch(() => {
+            btn.disabled = false;
+            resultEl.innerHTML = '<span class="text-danger"><i class="bi bi-exclamation-triangle"></i> 진위확인 중 오류가 발생했습니다.</span>';
+        });
+    }
+    window.verifyBizNo = verifyBizNo;
+
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str == null ? '' : str;
+        return div.innerHTML;
+    }
+
+    function setInvalid(el, message) {
+        el.classList.remove('is-valid');
+        el.classList.add('is-invalid');
+        const fb = el.parentElement.querySelector('.invalid-feedback')
+                 || el.nextElementSibling;
+        if (fb && fb.classList.contains('invalid-feedback')) fb.textContent = message;
+    }
+
+    function setValid(el) {
+        el.classList.remove('is-invalid');
+        el.classList.add('is-valid');
+    }
+})();
+</script>
+
+<!-- OCR 모달 전용 스크립트 (별도 파일) -->
+<script th:src="@{/js/com-ocr.js}"></script>
+</main>
+</body>
+</html>

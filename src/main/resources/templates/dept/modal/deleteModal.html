@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+	  xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<head>
+	<title>deptDeleteModal fragment</title>
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+</head>
+<body>
+<th:block th:fragment="deleteModal">
+<!-- 삭제/이관 시작용 숨김 폼 (POST + CSRF 토큰) -->
+<form id="deleteForm" method="post" th:action="@{/dept/delete}">
+    <input type="hidden" name="deptId" id="deleteDeptId">
+    <input type="hidden" name="comId" th:value="${com != null ? com.comId : null}">
+    <input th:if="${not #strings.isEmpty(returnUrl)}" type="hidden" name="returnUrl" th:value="${returnUrl}">
+</form>
+
+<div class="modal fade" id="deptDelModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:380px">
+        <div class="modal-content">
+            <div class="modal-header" style="border-bottom:none">
+                <span class="fw-semibold" id="deptDelHeaderLabel" style="color:var(--sb-red)">
+                    <i class="bi bi-shield-exclamation me-1"></i>부서 삭제
+                </span>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body pt-0">
+                <div class="del-modal-icon" id="deptDelIconBox"><i class="bi bi-diagram-3-fill"></i></div>
+                <div class="del-dept-name" id="deptDelName"></div>
+                <div class="del-warning" id="deptDelMainWarning">
+                    삭제 시 연결된 데이터에 영향을 줄 수 있습니다.<br>
+                    이 작업은 되돌릴 수 없습니다.
+                </div>
+                <div class="del-warn-box" id="deptDelChildWarn" style="display:none">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    <span id="deptDelChildWarnText"></span>
+                </div>
+                <div class="del-warn-box" id="deptDelEmpWarn" style="display:none">
+                    <i class="bi bi-people-fill"></i>
+                    <span id="deptDelEmpWarnText"></span>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top:none">
+                <button class="btn btn-ghost" id="deptDelCancelBtn" data-bs-dismiss="modal">취소</button>
+                <button class="btn btn-sb" id="deptDelYes"
+                        style="background:var(--sb-red);border-color:var(--sb-red)">
+                    <i class="bi bi-trash3" id="deptDelYesIcon"></i>
+                    <span id="deptDelYesLabel">삭제 확인</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+</th:block>
+</body>
+</html>

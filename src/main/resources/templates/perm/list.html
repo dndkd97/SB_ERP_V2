@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+	xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+	xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	layout:decorate="~{fragments/layout}">
+<head>
+<title>권한 관리</title>
+</head>
+<body data-page="permissions">
+
+	<!-- ================= 접근 불가 ================= -->
+	<section
+		sec:authorize="!hasAuthority('ROOT') and !hasRole('ROLE_ADMIN')"
+		class="sb-content" layout:fragment="content">
+		<div id="accessDenied" style="display: block">
+			<div class="denied-card">
+				<div class="denied-ico">
+					<i class="bi bi-shield-x"></i>
+				</div>
+				<div class="denied-title">접근 권한이 없습니다</div>
+				<div class="denied-body">
+					권한 관리 페이지는 <strong>ROOT</strong> 및 <strong>ROLE_ADMIN</strong> 계정만
+					접근할 수 있습니다.<br> 접근이 필요하면 시스템 관리자에게 문의하세요.
+				</div>
+				<a class="btn btn-ghost btn-sm" th:href="@{/}">홈으로</a>
+			</div>
+		</div>
+	</section>
+
+	<!-- ================= 메인 뷰 ================= -->
+	<section sec:authorize="hasAuthority('ROOT') or hasRole('ROLE_ADMIN')"
+		class="sb-content" layout:fragment="content">
+
+		<!-- 페이지 헤더 -->
+		<div class="sb-page-head">
+			<div class="sb-page-head__txt">
+				<div class="sb-breadcrumb">
+					<a th:href="@{/}">홈</a> <i class="bi bi-chevron-right"></i> 조직 관리 <i
+						class="bi bi-chevron-right"></i> 권한 관리
+				</div>
+				<h1>권한 관리</h1>
+				<p>회사별 권한(authority)을 등록·수정·삭제합니다. 권한에 따른 접근 제어는 애플리케이션 서버에서
+					적용됩니다.</p>
+			</div>
+			<div class="sb-page-head__actions">
+				</a> <a class="btn btn-sb btn-sm" th:href="@{/perm/add}"> <i
+					class="bi bi-plus-lg"></i> 권한 등록
+				</a>
+			</div>
+		</div>
+
+		<div class="row g-3">
+
+			<!-- ───────── 권한 목록 ───────── -->
+			<div class="col-12 col-lg-4">
+				<div class="sb-card">
+					<div class="sb-card__head">
+						<h2>권한 목록</h2>
+						<span class="sub"> <span th:text="${#lists.size(authList)}">0</span>개
+							권한
+						</span>
+					</div>
+					<div class="sb-card__body"
+						style="display: flex; flex-direction: column; gap: 4px"
+						id="roleList">
+
+						<!-- 빈 상태 -->
+						<div th:if="${#lists.isEmpty(authList)}" class="sb-empty"
+							style="padding: 40px 20px">
+							<i class="bi bi-shield-slash"></i>
+							<p>등록된 권한이 없습니다.</p>
+						</div>
+
+						<!-- 목록 -->
+						<a th:each="item : ${authList}"
+							th:href="@{/perm/list(autId=${item.autId})}" class="role-item"
+							th:classappend="${selectedRole != null and item.autId == selectedRole.autId} ? ' sel'">
+							<span class="rm-code" th:text="${item.autName}">ROLE_ADMIN</span>
+							<span class="sb-badge sb-badge--gray"> <span
+								th:text="${item.autCount}">0</span>명
+						</span>
+						</a>
+					</div>
+				</div>
+			</div>
+
+			<!-- ───────── 권한 상세 ───────── -->
+			<div class="col-12 col-lg-8">
+				<div class="sb-card" id="roleDetail">
+
+					<!-- 선택된 권한 없음 -->
+					<div th:if="${selectedRole == null}" class="sb-empty"
+						style="padding: 60px 20px">
+						<i class="bi bi-shield-slash"></i>
+						<p>
+							왼쪽에서 권한을 선택하세요.<br>또는 '권한 등록'으로 새 권한을 만드세요.
+						</p>
+					</div>
+
+					<!-- 선택된 권한 있음 -->
+					<div th:if="${selectedRole != null}">
+
+						<div class="sb-card__head">
+							<div style="flex: 1 1 auto">
+								<span class="rm-code rm-code--lg"
+									th:text="${selectedRole.autName}">ROLE_ADMIN</span>
+							</div>
+							<div class="right" style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap">
+								<a class="btn btn-ghost btn-sm"
+									th:href="@{/perm/edit(autId=${selectedRole.autId})}"> <i
+									class="bi bi-pencil"></i> 수정
+								</a>
+								<!-- 삭제는 POST form -->
+								<form th:action="@{/perm/delete}" method="post"
+									style="display: inline"
+									onsubmit="return confirm('정말 이 권한을 삭제하시겠습니까?');">
+									<input type="hidden" name="autId"
+										th:value="${selectedRole.autId}" />
+									<button type="submit" class="btn btn-ghost btn-sm">
+										<i class="bi bi-trash3"></i> 삭제
+									</button>
+								</form>
+							</div>
+						</div>
+						<div class="rm-sub">
+							<h3>이 권한이 부여된 사원</h3>
+							<span class="sub">
+								<span th:text="${#lists.size(empList)}">0</span>명
+							</span>
+						</div>
+						<div class="sb-card__body--flush">
+							<table class="sb-table">
+								<thead>
+									<tr>
+										<th>사원</th>
+										<th>부서</th>
+										<th>직급</th>
+									</tr>
+								</thead>
+								<tbody>
+
+									<!-- 부여 사원 없음 -->
+									<tr th:if="${#lists.isEmpty(empList)}">
+										<td colspan="3">
+											<div class="sb-empty" style="padding: 30px 20px">
+												<i class="bi bi-people"></i>
+												<p>이 권한이 부여된 사원이 없습니다.</p>
+											</div>
+										</td>
+									</tr>
+
+									<!-- 부여 사원 목록 -->
+									<tr th:each="h : ${empList}">
+										<td>
+											<div class="d-flex align-items-center gap-2">
+												<div class="sb-avatar"
+													th:text="${#strings.substring(h.empName, 0, 1)}"></div>
+												<div>
+													<div class="sb-table__name" th:text="${h.empName}"></div>
+													<div class="pm-empno" th:text="${h.empNo}"></div>
+												</div>
+											</div>
+										</td>
+										<td th:text="${h.deptName}">부서</td>
+										<td th:text="${h.posName}">직급</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+
+</body>
+</html>

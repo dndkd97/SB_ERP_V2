@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sb.erp.dao.AuthMapper">
+	<resultMap id="authListMap" type="AuthUserDto">
+		<result property="empEmail" column="emp_email" />
+		<result property="empPass" column="emp_pass" />
+		<result property="empNo" column="emp_no" />
+		<result property="empName" column="emp_name" />
+		<result property="posName" column="pos_name" />
+		<result property="comName" column="com_name" />
+		<result property="comId" column="com_id" />
+		<result property="empId" column="emp_id" />
+		<result property="deptId" column="dept_id" />
+		<result property="posId" column="pos_id" />
+		<collection property="authList" resultMap="authMap" />
+	</resultMap>
+
+	<resultMap id="authMap" type="AuthDto">
+		<result property="autName" column="aut_name" />
+	</resultMap>
+
+	<select id="readAuth" resultMap="authListMap" parameterType="string">
+		select e.emp_email, e.emp_pass, e.emp_no, e.emp_name, a.aut_name,
+			   ep.pos_name, c.com_name, e.com_id, e.emp_id, e.dept_id, e.pos_id
+		from emp_auth ea
+		join employee e  	 on e.emp_id = ea.emp_id
+		join authority a 	 on a.aut_id = ea.aut_id
+		join emp_position ep on ep.pos_id = e.pos_id
+		join company c 		 on c.com_id = e.com_id
+		where e.emp_email = #{username}
+	</select>
+	
+	
+	<!-- ============================================================
+		 권한 관리 (authority)
+	     ============================================================ -->
+
+	<!-- 권한 목록 + 부여 사원 수 (미부여 권한 포함) -->
+	<select id="selectAll" resultType="AuthPermDto"
+		parameterType="integer">
+		select a.com_id, a.aut_id, a.aut_name,
+		count(ea.emp_aut_id) as aut_count
+		from emp_auth ea
+		right join authority a on ea.aut_id = a.aut_id
+		where a.com_id = #{comId}
+		group by a.com_id, a.aut_id, a.aut_name
+	</select>
+
+	<!-- 권한 단건 조회 (수정 화면) -->
+	<select id="selectOneById" resultType="AuthPermDto">
+		select aut_id, aut_name, com_id
+		from authority
+		where aut_id = #{autId}
+		and com_id = #{comId}
+	</select>
+
+	<!-- 권한 등록 -->
+	<insert id="insert" parameterType="AuthPermDto">
+		insert into authority (com_id,
+		aut_name)
+		values (#{comId}, #{autName})
+	</insert>
+
+	<!-- 권한 수정 -->
+	<update id="update" parameterType="AuthPermDto">
+		update authority
+		set aut_name =
+		#{autName}
+		where aut_id = #{autId}
+		and com_id = #{comId}
+	</update>
+
+	<!-- 권한 삭제 -->
+	<delete id="delete" parameterType="AuthPermDto">
+		delete from authority
+		where
+		aut_id = #{autId}
+		and com_id = #{comId}
+	</delete>
+	
+	
+	<!-- ============================================================
+		 사원-권한 매핑(emp_auth)
+	     ============================================================ -->
+
+	<!-- 특정 권한을 가진 사원 목록 - 사원의 회사(e.com_id)로 가드하여 타 회사 사원 노출 차단 -->
+	<select id="selectEmpsByAuthId" resultType="EmpAuthDto">
+		select e.emp_id,
+		e.emp_no, e.emp_name,
+		e.dept_id, d.dept_name,
+		e.pos_id, p.pos_name,
+		e.com_id,
+		ea.emp_aut_id,
+		a.aut_id, a.aut_name
+		from emp_auth ea
+		join employee e on e.emp_id = ea.emp_id
+		join authority a on a.aut_id = ea.aut_id
+		join emp_position p on e.pos_id = p.pos_id
+		join department d on e.dept_id = d.dept_id
+		where ea.aut_id = #{autId}
+		and e.com_id = #{comId}
+	</select>
+
+	<!-- 특정 사원의 권한 조회 -->
+	<select id="selectAuthsByEmpId" resultType="EmpAuthDto">
+		select e.emp_id, e.emp_no, e.emp_name,
+		e.dept_id, d.dept_name,
+		e.pos_id, p.pos_name,
+		e.com_id,
+		ea.emp_aut_id,
+		a.aut_id, a.aut_name
+		from emp_auth ea
+		join employee e on e.emp_id = ea.emp_id
+		join authority a on a.aut_id = ea.aut_id
+		join emp_position p on e.pos_id = p.pos_id
+		join department d on e.dept_id = d.dept_id
+		where ea.emp_id = #{empId}
+		and e.com_id = #{comId}
+	</select>
+
+	<!-- 권한 부여 -->
+	<insert id="grantAuth" parameterType="EmpAuthDto">
+		insert into emp_auth
+		(emp_id, aut_id)
+		values (#{empId}, #{autId})
+	</insert>
+
+	<!-- 권한 회수 -->
+	<delete id="revokeAuth" parameterType="EmpAuthDto">
+		delete from emp_auth
+		where emp_aut_id = #{empAutId}
+	</delete>
+
+</mapper>

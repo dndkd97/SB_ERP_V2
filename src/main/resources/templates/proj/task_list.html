@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+   xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+   layout:decorate="~{fragments/layout}">
+<head lang="ko">
+<meta charset="UTF-8">
+<title>내 태스크 목록</title>
+</head>
+<body data-page="tasks">
+<th:block layout:fragment="content">
+<main class="sb-content">
+<div class="sb-page-head">
+  <div class="sb-page-head__txt">
+    <div class="sb-breadcrumb"><a th:href="@{/}">홈</a> <i class="bi bi-chevron-right"></i> 업무 <i class="bi bi-chevron-right"></i> 내 태스크</div>
+    <h1>내 태스크 목록</h1>
+    <p>내가 참여 중인 프로젝트의 태스크 현황을 조회합니다.</p>
+  </div>
+</div>
+
+<div class="sb-card mb-3">
+<div class="sb-toolbar" style="flex-direction:column; align-items:stretch; gap:10px;">
+  <div style="display:flex; align-items:center;">
+    <strong style="font-size:14px">태스크 목록</strong>
+    <span class="sb-badge sb-badge--gray ms-2" th:text="|${totalCnt}건|">0건</span>
+  </div>
+
+  <div style="display:flex; align-items:center;">
+    <form id="searchForm" th:action="@{/proj/task_list}" method="get" class="sb-search-form" style="width:auto;">
+      <input type="hidden" name="taskStatus" id="taskStatus" th:value="${search.taskStatus}">
+      <div class="sb-segment">
+        <a href="#" onclick="setStatus(''); return false;" th:classappend="${search.taskStatus == null or #strings.isEmpty(search.taskStatus)} ? 'active' : ''">전체</a>
+        <a href="#" onclick="setStatus('TODO'); return false;" th:classappend="${search.taskStatus=='TODO'} ? 'active' : ''">· TODO</a>
+        <a href="#" onclick="setStatus('DOING'); return false;" th:classappend="${search.taskStatus=='DOING'} ? 'active' : ''">· DOING</a>
+        <a href="#" onclick="setStatus('DONE'); return false;" th:classappend="${search.taskStatus=='DONE'} ? 'active' : ''">· DONE</a>
+      </div>
+    </form>
+<div style="margin-left:auto; display:flex; align-items:center; gap:8px;">
+    <span id="loadingText" style="display:none;">
+        <span class="spinner-border spinner-border-sm text-primary me-1"></span>
+        생성 중...
+    </span>
+    <button type="button" id="btnWeeklyReport" class="btn btn-sb btn-sm">
+        <i class="bi bi-file-earmark-pdf"></i>
+        <span>내 주간보고서</span>
+    </button>
+</div>
+  </div>
+</div>
+
+  <div class="sb-card__body--flush">
+    <table class="sb-table">
+      <thead>
+        <tr>
+          <th>프로젝트명</th>
+          <th>태스크명</th>
+          <th>설명</th>
+          <th>상태</th>
+          <th>비고</th>
+          <th>기간</th>
+          <th>등록일</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr th:each="dto : ${tasks}">
+            <td th:text="${dto.proName}"></td>
+            <td><a th:href="@{/proj/task_detail(task_id=${dto.taskId})}" class="sb-table__name" th:text="${dto.taskName}"></a></td>
+            <td class="sb-table__muted" th:text="${dto.taskDesc}"></td>
+			<td>
+			    <span th:class="${dto.taskStatus=='DONE'} ? 'sb-badge sb-badge--green' : (${dto.taskStatus=='DOING'} ? 'sb-badge sb-badge--blue' : 'sb-badge sb-badge--gray')">
+			        <span class="pip"></span>
+			        <span th:text="${dto.taskStatus}"></span>
+			    </span>
+			</td>
+			<td>
+			   <span th:if="${dto.parentTaskId != null and dto.parentTaskStatus != 'DONE'}" 
+				      class="sb-badge sb-badge--gray">
+				  <i class="bi bi-lock-fill"></i> 대기중
+				</span>
+				<span th:if="${dto.delayed and (dto.parentTaskId == null or dto.parentTaskStatus == 'DONE')}" 
+				      class="sb-badge sb-badge--red">
+				  <i class="bi bi-exclamation-triangle-fill"></i> 지연
+				</span>
+				<span th:if="${!dto.delayed and (dto.parentTaskId == null or dto.parentTaskStatus == 'DONE')}" 
+				      class="text-muted">-</span>
+			</td>
+            <td class="sb-hr-cell tnum" th:text="${#temporals.format(dto.taskStartDate, 'yyyy-MM-dd')} + ' ~ ' + ${#temporals.format(dto.taskEndDate, 'yyyy-MM-dd')}"></td>
+            <td class="sb-hr-cell tnum" th:text="${#temporals.format(dto.createdAt, 'yyyy-MM-dd')}"></td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="sb-empty" th:if="${#lists.isEmpty(tasks)}"><i class="bi bi-list-task"></i><p>조회된 태스크가 없습니다.</p></div>
+  </div>
+
+  <div class="d-flex justify-content-center py-3" style="border-top:1px solid var(--sb-border)" th:if="${paging != null}">
+    <ul class="pagination pagination-sm mb-0">
+      <li class="page-item" th:if="${paging.start > paging.bottomlist}">
+        <a th:href="@{/proj/task_list(pstartno=${paging.start-1}, taskStatus=${param.taskStatus})}" class="page-link">이전</a>
+      </li>
+      <li class="page-item" th:each="i : ${#numbers.sequence(paging.start, paging.end)}" th:classappend="${i==paging.current} ? 'active' : ''">
+        <a th:href="@{/proj/task_list(pstartno=${i}, taskStatus=${param.taskStatus})}" class="page-link" th:text="${i}"></a>
+      </li>
+      <li class="page-item" th:if="${paging.pagetotal > paging.end}">
+        <a th:href="@{/proj/task_list(pstartno=${paging.end+1}, taskStatus=${param.taskStatus})}" class="page-link">다음</a>
+      </li>
+    </ul>
+  </div>
+</div>
+</main>
+<!-- 순서 : pdf(byte[])->response.blob()->Blob(브라우저의 파일 객체)->blob(변수에 저장) -->
+<!-- response.blob() = 서버에서 받은 PDF 데이터를 브라우저에서 다운로드할 수 있는 파일 형태(Blob)로 변환하는 코드 -->
+<script th:inline="javascript">
+function setStatus(status) {
+    document.getElementById('taskStatus').value = status;
+    document.getElementById('searchForm').submit();
+}
+
+window.addEventListener("load", function(){
+
+    const btn = document.getElementById("btnWeeklyReport");
+    const loadingText = document.getElementById("loadingText");
+
+    btn.addEventListener("click", function(){
+        fetch("/report/my-weekly-report/check")
+        .then(response => response.json())
+        .then(data => {
+            if(!data){
+                alert("이번 주 완료된 태스크가 없어 보고서를 생성할 수 없습니다."); return; }
+            btn.disabled = true;
+            loadingText.style.display = "inline-flex";
+            return fetch("/report/my-weekly-report");
+        })
+        .then(response => {
+            if(response == null) return;
+            return response.blob();
+        })
+        .then(blob => {
+            if(blob == null) return;
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "MyWeeklyReport.pdf";
+            a.click();
+            URL.revokeObjectURL(url);
+            btn.disabled = false;
+            loadingText.style.display = "none";
+        })
+        .catch(() => {
+        	btn.disabled = false;
+            loadingText.style.display = "none";
+            alert("보고서 생성 중 오류가 발생했습니다.");
+        });
+    });
+});
+
+</script>
+</th:block>
+</body>
+</html>

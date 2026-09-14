@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{fragments/layout}">
+<head>
+    <title>부서 관리</title>
+</head>
+<body data-page="deptlist">
+<main layout:fragment="content" class="sb-content">
+    <!-- Toast 알림 (msg 모델 속성) -->
+    <div th:if="${not #strings.isEmpty(msg)}" class="position-fixed bottom-0 end-0 p-3" style="z-index:1100">
+        <div id="liveToast" class="toast align-items-center text-bg-success border-0 show" role="alert">
+            <div class="d-flex">
+                <div class="toast-body">
+                    <i class="bi bi-check-circle me-1"></i><span th:text="${msg}"></span>
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto"
+                        data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 페이지 헤더 -->
+    <div class="sb-page-head">
+        <div class="sb-page-head__txt">
+            <div class="sb-breadcrumb">
+                <a th:href="@{/}">홈</a>
+                <i class="bi bi-chevron-right"></i>
+                회사/부서 관리
+                <i class="bi bi-chevron-right"></i>
+                부서 관리
+            </div>
+            <h1 th:text="${com != null ? com.comName + ' 부서 관리' : '부서 관리'}"></h1>
+            <p>부서 구조를 조회하고 관리합니다.</p>
+        </div>
+        <!-- 부서 등록 버튼은 deptTreeTab 카드 헤더(툴바)에 있음 -->
+    </div>
+
+    <!-- 통계 타일 -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-lg-3">
+            <div class="sb-stat">
+                <div class="sb-stat__top">
+                    <div class="sb-stat__ico tone-blue"><i class="bi bi-diagram-3"></i></div>
+                    <div class="sb-stat__label">전체 부서</div>
+                </div>
+                <div class="sb-stat__val" th:text="${(com == null or com.comId == null) ? '—' : stats.deptTotal}"></div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="sb-stat">
+                <div class="sb-stat__top">
+                    <div class="sb-stat__ico tone-violet"><i class="bi bi-building-fill"></i></div>
+                    <div class="sb-stat__label">본부</div><!-- (depth 1) -->
+                </div>
+                <div class="sb-stat__val" th:text="${(com == null or com.comId == null) ? '—' : stats.dept1Total}"></div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="sb-stat">
+                <div class="sb-stat__top">
+                    <div class="sb-stat__ico tone-green"><i class="bi bi-people"></i></div>
+                    <div class="sb-stat__label">부서/팀</div><!-- (depth 2+) -->
+                </div>
+                <div class="sb-stat__val" th:text="${(com == null or com.comId == null) ? '—' : stats.dept2Total}"></div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="sb-stat">
+                <div class="sb-stat__top">
+                    <div class="sb-stat__ico tone-amber"><i class="bi bi-person-fill"></i></div>
+                    <div class="sb-stat__label">전체 인원</div>
+                </div>
+                <div class="sb-stat__val" th:text="${(com == null or com.comId == null) ? '—' : stats.empTotal}"></div>
+            </div>
+        </div>
+    </div>
+    <div th:replace="~{dept/deptTreeTab :: content}">부서 트리 영역 (fragment 로딩)</div>
+</main>
+</body>
+</html>

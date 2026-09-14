@@ -1,0 +1,303 @@
+﻿<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{fragments/layout}">
+<head>
+    <title>예약 신청</title>
+</head>
+<body>
+<main layout:fragment="content" class="sb-content">
+<div th:if="${toastMsg}"
+     id="flashToast"
+     style="display:none"
+     th:attr="data-msg=${toastMsg}, data-kind=${toastKind ?: 'ok'}, data-field=${toastField}"></div>
+     
+  <div class="sb-page-head">
+    <div class="sb-page-head__txt">
+      <div class="sb-breadcrumb">
+        <a th:href="@{/resv/my}">자원 요청</a>
+        <i class="bi bi-chevron-right"></i> 예약 신청
+      </div>
+      <h1>자원 예약 신청</h1>
+      <p>사용할 자원과 기간을 선택하면 관리자 승인 대기 상태로 접수됩니다.</p>
+    </div>
+    <div class="sb-page-head__actions">
+        <a th:href="@{/resv/my}" class="btn btn-ghost btn-sm"><i class="bi bi-arrow-left"></i> 목록으로</a>
+    </div>
+  </div>
+
+<form th:action="@{/resv/insert}" method="post" id="resvForm" novalidate>
+  <div class="sb-card mb-3">
+    <div class="sb-card__head">
+      <h2>예약 정보</h2>
+      <span class="sub">예약 상태는 최초 대기(WAI)로 저장됩니다.</span>
+    </div>
+    <div class="sb-card__body">
+
+        <!-- 자원 선택 -->
+        <div class="mb-3">
+          <label for="resId" class="sb-form-label">예약 자원</label>
+          <select name="resId" id="resId" class="form-select">
+            <option value="">자원을 선택하세요</option>
+            <option th:each="r : ${resList}"
+                    th:value="${r.resId}"
+                    th:text="${r.resName + ' (' + r.resCode + ') / 보유 수량 ' + r.quantity}"
+                    th:attr="data-res-type=${r.resType}, data-location=${r.location}, data-capacity=${r.capacity}, data-status=${r.resStatus}, data-quantity=${r.quantity}">
+            </option>
+          </select>
+          <span class="sb-field-msg text-danger" id="resIdMsg" style="display:none">
+            <i class="bi bi-exclamation-circle"></i> 예약할 자원을 선택하세요.
+          </span>
+        </div>
+
+        <!-- 선택된 자원 상세 정보 : location / capacity / res_status -->
+        <div class="mb-3 p-3" id="resInfoBox" style="background:var(--sb-accent-soft); border-radius:10px; display:none">
+          <div class="text-faint mb-1" style="font-size:12px">선택된 자원 정보</div>
+          <div class="d-flex flex-wrap gap-3" style="font-size:13px">
+            <span><i class="bi bi-geo-alt text-faint"></i> 위치 <b id="infoLocation">-</b></span>
+            <span><i class="bi bi-people text-faint"></i> 수용인원 <b id="infoCapacity">-</b></span>
+            <span><i class="bi bi-box-seam text-faint"></i> 보유수량 <b id="infoQuantity">-</b></span>
+            <span id="infoStatusWrap"><span id="infoStatus" class="sb-badge sb-badge--gray">-</span></span>
+          </div>
+          <div id="infoWarn" class="text-danger mt-2" style="font-size:12.5px; display:none">
+            <i class="bi bi-exclamation-triangle"></i> 현재 점검/사용불가 상태인 자원입니다. 승인이 지연될 수 있습니다.
+          </div>
+        </div>
+
+        <!-- 예약 기간 : START_DT ~ END_DT -->
+        <div class="row mb-1">
+          <div class="col-6">
+            <label for="startDt" class="sb-form-label">시작 일시</label>
+            <input type="datetime-local" name="startDt" id="startDt" class="form-control">
+            <span class="sb-field-msg text-danger" id="startDtMsg" style="display:none">
+              <i class="bi bi-exclamation-circle"></i> 시작 일시를 입력하세요.
+            </span>
+          </div>
+          <div class="col-6">
+            <label for="endDt" class="sb-form-label">종료 일시</label>
+            <input type="datetime-local" name="endDt" id="endDt" class="form-control">
+            <span class="sb-field-msg text-danger" id="endDtMsg" style="display:none">
+              <i class="bi bi-exclamation-circle"></i> 종료 일시를 입력하세요.
+            </span>
+          </div>
+        </div>
+        <div class="mb-3 text-faint" style="font-size:12px">
+          <i class="bi bi-info-circle"></i> 동일 자원에 예약 시간이 겹치면 신청이 제한될 수 있습니다.
+        </div>
+
+        <!-- 예약 수량 -->
+        <div class="mb-3">
+          <label for="quantity" class="sb-form-label">예약 수량</label>
+          <input type="number" name="quantity" id="quantity" class="form-control" min="1" value="1">
+          <span class="sb-field-msg text-danger" id="quantityMsg" style="display:none">
+            <i class="bi bi-exclamation-circle"></i> 보유 수량을 초과했습니다.
+          </span>
+        </div>
+
+        <!-- 신청 사유 -->
+        <div class="mb-4">
+          <label for="remark" class="sb-form-label">신청 사유</label>
+          <textarea name="remark" id="remark" class="form-control" rows="4"
+                    placeholder="사용 목적이나 요청 사항을 입력하세요"></textarea>
+        </div>
+        </div>
+        </div>
+
+    	<div class="d-flex gap-2 justify-content-end">
+          <a th:href="@{/resv/my}" class="btn btn-ghost">취소</a>
+          <button type="submit" class="btn btn-sb">
+            <i class="bi bi-check-lg"></i> 예약 신청
+          </button>
+        </div>
+	</form>
+<th:block layout:fragment="script">
+<script th:inline="javascript">
+document.addEventListener("DOMContentLoaded", function () {
+  // [신규] 서버에서 넘어온 flash 토스트 메시지 표시
+  const flashEl = document.getElementById("flashToast");
+  if (flashEl && window.SB) {
+    SB.toast(flashEl.dataset.msg, flashEl.dataset.kind || "ok");
+ 
+    // 서버가 어떤 필드가 문제인지 알려준 경우(quantity, startDt 등) 해당 입력을 붉게 강조
+    if (flashEl.dataset.field) {
+      const badField = document.getElementById(flashEl.dataset.field);
+      if (badField) {
+        badField.classList.add("is-err");
+        badField.focus();
+      }
+    }
+  }
+ 
+  const form        = document.getElementById("resvForm");
+  const resSelect   = document.getElementById("resId");
+  const infoBox      = document.getElementById("resInfoBox");
+  const infoLocation = document.getElementById("infoLocation");
+  const infoCapacity = document.getElementById("infoCapacity");
+  const infoQuantity = document.getElementById("infoQuantity");
+  const infoStatus   = document.getElementById("infoStatus");
+  const infoWarn     = document.getElementById("infoWarn");
+  const qtyInput     = document.getElementById("quantity");
+  const startInput   = document.getElementById("startDt");
+  const endInput     = document.getElementById("endDt");
+ 
+  const resIdMsg    = document.getElementById("resIdMsg");
+  const startDtMsg  = document.getElementById("startDtMsg");
+  const endDtMsg    = document.getElementById("endDtMsg");
+  const quantityMsg = document.getElementById("quantityMsg");
+ 
+  const statusMap = {
+    AVAILABLE:   { text: "사용가능", tone: "green" },
+    MAINTENANCE: { text: "점검중",   tone: "amber" },
+    DISABLED:    { text: "사용불가", tone: "red"   }
+  };
+ 
+  function setFieldError(input, msgEl, show, text) {
+    input.classList.toggle("is-err", show);
+    if (text) msgEl.querySelector ?
+      (msgEl.lastChild && (msgEl.innerHTML = '<i class="bi bi-exclamation-circle"></i> ' + text)) : null;
+    msgEl.style.display = show ? "flex" : "none";
+  }
+ 
+  resSelect.addEventListener("change", function () {
+    const opt = this.options[this.selectedIndex];
+    setFieldError(resSelect, resIdMsg, false);
+ 
+    if (!opt || !opt.value) {
+      infoBox.style.display = "none";
+      return;
+    }
+    infoBox.style.display = "block";
+    infoLocation.textContent = opt.dataset.location || "-";
+    infoCapacity.textContent = opt.dataset.capacity ? opt.dataset.capacity + "명" : "-";
+    infoQuantity.textContent = opt.dataset.quantity || "-";
+ 
+    const st = statusMap[opt.dataset.status] || { text: opt.dataset.status || "-", tone: "gray" };
+    infoStatus.textContent = st.text;
+    infoStatus.className = "sb-badge sb-badge--" + st.tone;
+ 
+    infoWarn.style.display = (opt.dataset.status === "AVAILABLE") ? "none" : "block";
+ 
+    // 1차 힌트 : 총 보유수량으로 우선 max 세팅 (서버 조회 전 임시값)
+    if (opt.dataset.quantity) {
+      qtyInput.setAttribute("max", opt.dataset.quantity);
+    }
+    validateQuantity();
+ 
+    // 자원이 바뀌면 기간이 이미 선택되어 있을 수 있으므로 잔여수량도 다시 조회
+    refreshAvailableQty();
+  });
+ 
+  // 종료일시가 시작일시보다 빠르지 않도록 최소값 동기화
+  startInput.addEventListener("change", function () {
+    setFieldError(startInput, startDtMsg, false);
+    if (this.value) {
+      endInput.min = this.value;
+      if (endInput.value && endInput.value < this.value) {
+        endInput.value = this.value;
+      }
+    }
+    refreshAvailableQty();
+  });
+  endInput.addEventListener("change", function () {
+    setFieldError(endInput, endDtMsg, false);
+    refreshAvailableQty();
+  });
+ 
+  // [신규] 자원 + 기간이 모두 선택되면 해당 기간의 실제 잔여수량을 서버에서 조회
+  // (총 보유수량이 아니라 "이미 예약(WAI/APP)된 수량을 뺀 진짜 남은 수량"이 필요하므로)
+  function refreshAvailableQty() {
+    if (!resSelect.value || !startInput.value || !endInput.value) {
+      return;
+    }
+ 
+    const params = new URLSearchParams({
+      resId: resSelect.value,
+      startDt: startInput.value,
+      endDt: endInput.value
+    });
+ 
+    fetch("/resv/available?" + params.toString())
+      .then(function (res) {
+        if (!res.ok) {
+          throw new Error("잔여수량 조회 실패");
+        }
+        return res.json();
+      })
+      .then(function (data) {
+        // data = { totalQuantity, reservedQty, availableQty, resStatus }
+        qtyInput.setAttribute("max", data.availableQty);
+        infoQuantity.textContent = data.availableQty + " / " + data.totalQuantity;
+ 
+        if (data.availableQty <= 0) {
+          infoStatus.textContent = statusMap["DISABLED"].text;
+          infoStatus.className = "sb-badge sb-badge--" + statusMap["DISABLED"].tone;
+          setFieldError(qtyInput, quantityMsg, true, "해당 기간에는 예약 가능한 수량이 없습니다.");
+        }
+        validateQuantity();
+      })
+      .catch(function (err) {
+        // 조회 실패 시에는 화면을 막지 않고 기존 max(총 보유수량)를 그대로 최종 방어선(서버 insert 검증)에 맡김
+        console.error(err);
+      });
+  }
+ 
+  function validateQuantity() {
+    const max = Number(qtyInput.getAttribute("max"));
+    const val = Number(qtyInput.value);
+    if (max && val > max) {
+      setFieldError(qtyInput, quantityMsg, true, "보유 수량(" + max + ")을 초과했습니다.");
+      return false;
+    }
+    if (!val || val < 1) {
+      setFieldError(qtyInput, quantityMsg, true, "1개 이상 입력하세요.");
+      return false;
+    }
+    setFieldError(qtyInput, quantityMsg, false);
+    return true;
+  }
+  qtyInput.addEventListener("input", validateQuantity);
+ 
+  // 제출 시 통합 검증 : 자원 미선택 / 기간 미지정 / 수량 초과 -> 모두 인라인 메시지로 표시
+  form.addEventListener("submit", function (e) {
+    let ok = true;
+ 
+    if (!resSelect.value) {
+      setFieldError(resSelect, resIdMsg, true);
+      ok = false;
+    } else {
+      setFieldError(resSelect, resIdMsg, false);
+    }
+ 
+    if (!startInput.value) {
+      setFieldError(startInput, startDtMsg, true, "시작 일시를 입력하세요.");
+      ok = false;
+    } else {
+      setFieldError(startInput, startDtMsg, false);
+    }
+ 
+    if (!endInput.value) {
+      setFieldError(endInput, endDtMsg, true, "종료 일시를 입력하세요.");
+      ok = false;
+    } else if (startInput.value && endInput.value < startInput.value) {
+      setFieldError(endInput, endDtMsg, true, "종료 일시는 시작 일시 이후여야 합니다.");
+      ok = false;
+    } else {
+      setFieldError(endInput, endDtMsg, false);
+    }
+ 
+    if (!validateQuantity()) {
+      ok = false;
+    }
+ 
+    if (!ok) {
+      e.preventDefault();
+      const firstError = form.querySelector(".is-err");
+      if (firstError) firstError.focus();
+    }
+  });
+});
+</script>
+</th:block>
+</main>
+</body>
+</html>

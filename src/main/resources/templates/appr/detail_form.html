@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{fragments/layout.html}">
+<head>
+	<title>결재 양식 관리</title>
+</head>
+<body>
+
+<main layout:fragment="content">
+<script th:src="@{/js/appr-schema.js}"></script>
+<div class="sb-page-head">
+	<div class="sb-page-head__txt">
+		<div class="sb-breadcrumb">
+			<a th:href="@{/appr/list_form}">전자결재</a>
+			<i class="bi bi-chevron-right"></i>
+			<span>양식 관리</span>
+		</div>
+		<h1>결재 양식 상세조회</h1>
+		<p>결재 양식의 상세 정보를 확인합니다.</p>
+	</div>
+	<div class="sb-page-head__actions">
+		<button type="button" class="btn btn-ghost"
+				th:onclick="|location.href='@{/appr/list_form}'|">
+				목록으로
+		</button>
+	</div>
+</div>
+
+<div class="row g-4">
+	<div class="col-lg-9">
+		<div class="sb-card">
+			<div class="sb-card__head">
+				<h2>기본 정보</h2>
+			</div>
+			
+			<div class="sb-card__body">
+				<div class="row g-4 mb-4 border-bottom pb-4">
+					<div class="col-md-6">
+						<label class="sb-form-label text-soft">양식 코드</label>
+						<div class="fs-5 fw-bold text-dark mt-1"
+							 th:text="${dto.forCode}">TEST-001</div>
+					</div>
+					<div class="col-md-6">
+						<label class="sb-form-label text-soft">회사</label>
+						<div class="d-flex align-items-center text-dark fw-semibold mt-1 fs-5">
+							<i class="bi bi-building me-2"></i>
+							<span th:text="${dto.comName}">회사명</span>
+						</div>
+					</div>
+				</div>
+
+				<div class="row g-4 mb-4">
+					<div class="col-md-12">
+						<label class="sb-form-label text-soft">양식 제목</label>
+						<div class="fs-5 fw-bold text-dark mt-1"
+							 th:text="${dto.forTitle}">병가신청서
+						</div>
+					</div>
+				</div>
+				
+				<div class="mb-4 mt-2">
+					<label class="sb-form-label text-soft">양식 내용 미리보기</label>
+					<div th:if="${dto.forContent != null}"
+						 class="approval-document-wrap p-4 border rounded"
+						 style="background-color: #ffffff; min-height: 350px; overflow-x: auto;">
+						<div th:utext="${dto.forContent}"></div>
+					</div>		
+					<div th:if="${dto.forSchema != null}" id="schemaPreview"
+						 class="p-4 border rounded"
+						 th:attr="data-schema=${dto.forSchema}"></div>
+					<script th:if="${dto.forSchema != null}">
+						const box = document.getElementById("schemaPreview");
+						const schema = JSON.parse(box.getAttribute("data-schema"));
+						box.innerHTML = schema.fields.map(f => renderSchema(f, false)).join('');
+					</script>  
+				</div>
+				
+				<div class="sb-divider"></div>
+
+				<div class="d-flex justify-content-end gap-2">
+					<button type="button" class="btn btn-ghost" 
+							th:onclick="|location.href='@{/appr/list_form}'|">
+							목록으로
+					</button>
+					<button type="button" class="btn btn-sb" 
+							th:onclick="|location.href='@{/appr/update_form(forId=${dto.forId}, forVersion=${dto.forVersion})}'|">
+							<i class="bi bi-pencil-square"></i> 수정하기
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="col-lg-3">
+		<div class="sb-card mb-4">
+			<div class="sb-card__head">
+				<h2>양식 상세 정보</h2>
+			</div>
+			
+			<div class="sb-card__body">
+				<div class="d-flex justify-content-between border-bottom pb-2 mb-2">
+					<span class="text-soft font-size-13">양식 ID</span>
+					<span class="fw-bold tnum text-secondary" th:text="${dto.forId}"></span>
+				</div>
+				<div class="d-flex justify-content-between border-bottom pb-2 mb-2">
+					<span class="text-soft font-size-13">생성일</span>
+					<span class="tnum text-dark small" th:text="${dto.createdAt}"></span>
+				</div>
+				<div class="d-flex justify-content-between border-bottom pb-2 mb-2">
+					<span class="text-soft font-size-13">수정일</span>
+					<span class="tnum text-dark small" th:text="${dto.updatedAt}"></span>
+				</div>
+				<div class="d-flex justify-content-between align-items-center">
+					<span class="text-soft font-size-13">사용 여부</span>
+					<span class="sb-badge"
+						  th:classappend="${dto.forStatus} ? 'sb-badge--green' : 'sb-badge--gray'">
+						<span class="pip"></span>
+						<th:block th:text="${dto.forStatus} ? '활성화' : '비활성화'"></th:block>
+					</span>
+				</div>
+			</div>
+
+			<div class="sb-card__body bg-light border-top">
+				<div class="d-flex gap-2 align-items-start">
+					<i class="bi bi-info-circle-fill text-primary"
+					   style="font-size: 13px;"></i>
+					<p class="m-0 text-soft" style="font-size: 12px; line-height: 1.4;">
+						해당 양식의 고유 정보 및 변경 이력입니다.
+					</p>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>	
+
+
+
+</main>
+</body>
+</html>

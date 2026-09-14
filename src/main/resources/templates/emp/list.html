@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+	xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	layout:decorate="~{fragments/layout}">
+<head>
+<title>사원관리</title>
+</head>
+<body data-page="employees">
+	<section class="emp_list sb-content" layout:fragment="content">
+
+		<!-- 페이지 헤더 -->
+		<div class="sb-page-head">
+			<div class="sb-page-head__txt">
+				<div class="sb-breadcrumb">
+					<a th:href="@{/}">홈</a> <i class="bi bi-chevron-right"></i> 조직 관리 <i
+						class="bi bi-chevron-right"></i> 사원관리
+				</div>
+				<h1>사원관리</h1>
+				<p>전체 임직원 정보를 조회하고 관리합니다.</p>
+			</div>
+			<div class="sb-page-head__actions">
+				<a sec:authorize="hasRole('ROLE_ADMIN')"
+				class="btn btn-sb btn-sm" th:href="@{/emp/add}">
+				<i class="bi bi-person-plus"></i> 사원 등록
+				</a>
+			</div>
+		</div>
+
+		<!-- 목록 카드 -->
+		<div class="sb-card">
+
+			<!-- 검색 툴바 -->
+			<form th:action="@{/emp/list}" method="get" class="sb-toolbar">
+				<input type="hidden" name="searched" value="1" />
+
+				<div class="sb-field">
+					<label for="deptId" class="blind">부서 선택</label> <select id="deptId"
+						name="deptId">
+						<option value="">전체 부서</option>
+						<option th:each="dept : ${deptList}" th:value="${dept.deptId}"
+							th:text="${dept.deptName}"
+							th:selected="${search.deptId != null and search.deptId == dept.deptId}">부서명</option>
+					</select>
+				</div>
+
+				<div class="sb-field">
+					<label for="posId" class="blind">직급 선택</label> <select id="posId"
+						name="posId">
+						<option value="">전체 직급</option>
+						<option th:each="pos : ${posList}" th:value="${pos.posId}"
+							th:text="${pos.posName}"
+							th:selected="${search.posId != null and search.posId == pos.posId}">직급명</option>
+					</select>
+				</div>
+
+				<div class="sb-field">
+					<label for="empStatus" class="blind">상태 선택</label>
+					<select id="empStatus" name="empStatus">
+						<option value="">전체 상태</option>
+						<option value="재직" th:selected="${search.empStatus == '재직'}">재직</option>
+						<option value="휴직" th:selected="${search.empStatus == '휴직'}">휴직</option>
+						<option value="퇴직" th:selected="${search.empStatus == '퇴직'}">퇴직</option>
+					</select>
+				</div>
+
+				<div class="sb-field sb-field--search">
+					<i class="bi bi-search"></i> <input type="text" name="keyword"
+						placeholder="이름 또는 사번" th:value="${search.keyword}" />
+				</div>
+
+				<button type="submit" class="btn btn-sb btn-sm">검색</button>
+			</form>
+
+			<!-- 검색 결과 테이블 -->
+			<div th:switch="${empList}">
+
+				<!-- 검색 전: empList가 null -->
+				<div th:if="${empList == null}" class="sb-empty">
+					<i class="bi bi-search"></i>
+					<p>검색 조건을 설정하고 검색 버튼을 눌러주세요.</p>
+				</div>
+
+				<!-- 검색 결과 없음 -->
+				<div th:if="${empList != null and #lists.isEmpty(empList)}"
+					class="sb-empty">
+					<i class="bi bi-search"></i>
+					<p>검색 결과가 없습니다.</p>
+				</div>
+
+				<!-- 검색 결과 있음 -->
+				<div th:if="${empList != null and !#lists.isEmpty(empList)}"
+					class="sb-card__body--flush">
+					<table class="empListTable sb-table">
+						<thead>
+							<tr>
+								<th>사번</th>
+								<th>이름</th>
+								<th>부서</th>
+								<th>직급</th>
+								<th>이메일</th>
+								<th>연락처</th>
+								<th>재직상태</th>
+								<th>입사일</th>
+								<th></th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr th:each="dto : ${empList}">
+								<td class="sb-hr-cell tnum" th:text="${dto.empNo}">EMP-001</td>
+								<td>
+									<div class="sb-rowuser">
+										<div class="sb-avatar"
+											th:text="${#strings.substring(dto.empName, 0, 1)}">홍</div>
+										<div>
+											<div class="sb-table__name" th:text="${dto.empName}">홍길동</div>
+										</div>
+									</div>
+								</td>
+								<td th:text="${dto.deptName}">부서</td>
+								<td th:text="${dto.posName}">직급</td>
+								<td class="sb-hr-cell" th:text="${dto.empEmail}"></td>
+								<td class="sb-hr-cell" th:text="${dto.empMobile}"></td>
+								<td>
+									<span th:switch="${dto.empStatus}">
+										<span th:case="'재직'" class="sb-badge sb-badge--green">
+										<span class="pip"></span>
+										재직
+									</span>
+									<span th:case="'휴직'" class="sb-badge sb-badge--amber">
+										<span class="pip"></span>휴직</span>
+									<span th:case="'퇴직'" class="sb-badge sb-badge--red">
+										<span class="pip"></span>퇴직</span>
+									<span th:case="*" class="sb-badge sb-badge--gray" th:text="${dto.empStatus}">상태</span>
+								</span></td>
+								<td class="sb-hr-cell tnum" th:text="${dto.hireDate}">2020-01-01</td>
+								<td class="num">
+									<div class="d-flex justify-content-end gap-1">
+										<a th:if="${isAdmin or loginEmpId == dto.empId}"
+										   th:href="@{/emp/detail(empId=${dto.empId})}" class="sb-iconbtn"
+											style="width: 30px; height: 30px; font-size: 14px" title="상세보기">
+											<i class="bi bi-eye"><span class="blind">상세보기</span></i>
+										</a>
+										<a th:if="${isAdmin or loginEmpId == dto.empId}"
+										sec:authorize="hasRole('ROLE_ADMIN')" th:href="@{/emp/edit(empId=${dto.empId})}" 
+										class="sb-iconbtn" style="width: 30px; height: 30px; font-size: 14px" title="정보 수정">
+											<i class="bi bi-pencil"><span class="blind">정보 수정</span></i>
+										</a>
+									</div>
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+
+			<!-- 페이징 -->
+			<div class="pagingBox"
+				th:if="${paging != null and paging.listtotal > 0}">
+				<span class="text-faint"> 총 <b th:text="${paging.listtotal}">0</b>명
+				</span>
+				<nav>
+					<ul class="pagination pagination-sm mb-0">
+						<!-- 이전 -->
+						<li class="page-item"
+							th:classappend="${paging.start <= 1} ? 'disabled'"><a
+							class="page-link"
+							th:href="@{/emp/list(searched=1,
+                                               deptId=${search.deptId},
+                                               posId=${search.posId},
+                                               empStatus=${search.empStatus},
+                                               keyword=${search.keyword},
+                                               page=${paging.start - 1})}">
+								<i class="bi bi-chevron-left"></i>
+						</a></li>
+						<!-- 페이지 번호 -->
+						<li th:each="i : ${#numbers.sequence(paging.start, paging.end)}"
+							class="page-item"
+							th:classappend="${paging.current == i} ? 'active'"><a
+							class="page-link"
+							th:href="@{/emp/list(searched=1,
+                                               deptId=${search.deptId},
+                                               posId=${search.posId},
+                                               empStatus=${search.empStatus},
+                                               keyword=${search.keyword},
+                                               page=${i})}"
+							th:text="${i}">1</a></li>
+						<!-- 다음 -->
+						<li class="page-item"
+							th:classappend="${paging.end >= paging.pagetotal} ? 'disabled'">
+							<a class="page-link"
+							th:href="@{/emp/list(searched=1,
+                                               deptId=${search.deptId},
+                                               posId=${search.posId},
+                                               empStatus=${search.empStatus},
+                                               keyword=${search.keyword},
+                                               page=${paging.end + 1})}">
+								<i class="bi bi-chevron-right"></i>
+						</a>
+						</li>
+					</ul>
+				</nav>
+			</div>
+		</div>
+	</section>
+</body>
+</html>

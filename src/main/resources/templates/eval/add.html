@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{fragments/layout}">
+<head>
+    <title>평가 작성</title>
+</head>
+<body>
+<section class="eval_add sb-content" layout:fragment="content">
+
+    <!-- 페이지 헤더 -->
+    <div class="sb-page-head">
+        <div class="sb-page-head__txt">
+            <div class="sb-breadcrumb">
+                <a th:href="@{/}">홈</a>
+                <i class="bi bi-chevron-right"></i>
+                <a th:href="@{/eval/list(periodId=${period.periodId})}">평가 작성</a>
+                <i class="bi bi-chevron-right"></i>
+                새 평가
+            </div>
+            <h1>인사평가 작성</h1>
+            <p th:text="${period.title}">2026년 상반기 정기평가</p>
+        </div>
+        <div class="sb-page-head__actions">
+            <a th:href="@{/eval/list(periodId=${period.periodId})}"
+               class="btn btn-ghost btn-sm">
+                <i class="bi bi-arrow-left"></i>
+                대상 목록으로
+            </a>
+        </div>
+    </div>
+
+    <!-- 폼: 임시저장 or 제출은 버튼 종류로 결정 -->
+    <form id="evalForm" method="post" th:action="@{/eval/submit}" onsubmit="return checkForm()">
+        <input type="hidden" name="periodId" th:value="${period.periodId}"/>
+        <input type="hidden" name="targetEmpId" th:value="${targetEmpId}"/>
+
+        <div class="row g-3">
+
+            <!-- 5개 점수 카드 -->
+            <div class="col-12 col-lg-8">
+                <div class="sb-card mb-3">
+                    <div class="sb-card__head">
+                        <h2>
+                            <i class="bi bi-star me-2 text-soft"></i>
+                            정량 평가
+                        </h2>
+                        <span class="sub">각 항목 1점(매우 미흡) ~ 5점(매우 우수)</span>
+                    </div>
+                    <div class="sb-card__body">
+
+                        <div th:each="item, iterStat : ${ {
+                                {'scorePerformance', '성과', '목표 달성도와 업무 결과의 질·양'},
+                                {'scoreExpertise',   '전문성', '담당 업무 관련 지식·스킬'},
+                                {'scoreTeamwork',    '협업', '동료·타부서와의 소통과 상호 지원'},
+                                {'scoreAttitude',    '태도', '성실성·책임감·근태'},
+                                {'scoreGrowth',      '성장', '학습 의욕·개선 노력·잠재력'}
+                            } }" class="mb-3">
+                            <div class="d-flex justify-content-between align-items-baseline">
+                                <label class="sb-form-label" th:for="${item[0]}" th:text="${item[1]}">항목</label>
+                                <span class="text-faint" style="font-size:12px" th:text="${item[2]}">설명</span>
+                            </div>
+                            <div class="sb-score-radio">
+                                <div th:each="n : ${#numbers.sequence(1, 5)}">
+                                    <input type="radio" th:name="${item[0]}" th:value="${n}"
+                                           th:id="${item[0] + '_' + n}"/>
+                                    <label th:for="${item[0] + '_' + n}" th:text="${n}">1</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 서술형: 강점 -->
+                <div class="sb-card mb-3">
+                    <div class="sb-card__head">
+                        <h2>
+                            <i class="bi bi-chat-square-quote me-2 text-soft"></i>
+                            강점
+                        </h2>
+                    </div>
+                    <div class="sb-card__body">
+                        <textarea class="form-control" id="strengthComment" name="strengthComment"
+                                  rows="5" maxlength="2000"
+                                  placeholder="이 사원의 강점, 잘한 점을 구체적인 사례와 함께 서술하세요."></textarea>
+                    </div>
+                </div>
+
+                <!-- 서술형: 개선점 -->
+                <div class="sb-card mb-3">
+                    <div class="sb-card__head">
+                        <h2>
+                            <i class="bi bi-chat-square-dots me-2 text-soft"></i>
+                            개선점
+                        </h2>
+                    </div>
+                    <div class="sb-card__body">
+                        <textarea class="form-control" id="improvementComment" name="improvementComment"
+                                  rows="5" maxlength="2000"
+                                  placeholder="다음 회차까지 개선하면 좋을 부분을 서술하세요."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 우측 안내 및 액션 -->
+            <div class="col-12 col-lg-4">
+                <div class="sb-card sticky-top" style="top:16px">
+                    <div class="sb-card__head">
+                        <h2>
+                            <i class="bi bi-info-circle me-2 text-soft"></i>
+                            안내
+                        </h2>
+                    </div>
+                    <div class="sb-card__body">
+                        <div class="text-faint" style="font-size:13px;line-height:1.7">
+                            <p><b>임시 저장</b>: 일부만 입력한 상태로 저장. 언제든 다시 열어 이어서 작성 가능.</p>
+                            <p><b>제출</b>: 모든 항목(점수 5개 + 강점 + 개선점)을 채워야 제출됩니다. 제출 후에도 회차가 진행 중이면 수정 가능합니다.</p>
+                            <p><b>가중치</b>: 성과 40% / 전문성 20% / 협업 20% / 태도 10% / 성장 10%</p>
+                        </div>
+
+                        <div class="sb-form-actions" style="flex-direction:column;gap:8px">
+                            <button type="button" class="btn btn-ghost w-100" onclick="saveDraft()">
+                                <i class="bi bi-save"></i>
+                                임시 저장
+                            </button>
+                            <button type="submit" class="btn btn-sb w-100">
+                                <i class="bi bi-check-lg"></i>
+                                제출
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+
+</section>
+
+<th:block layout:fragment="script">
+<script>
+    function saveDraft() {
+        const form = document.getElementById("evalForm");
+        form.action = /*[[@{/eval/saveDraft}]]*/ '/eval/saveDraft';
+        form.submit();
+    }
+
+    function checkForm() {
+        // 제출 시 필수값 검증
+        const items = ['scorePerformance', 'scoreExpertise', 'scoreTeamwork', 'scoreAttitude', 'scoreGrowth'];
+        for (const name of items) {
+            const checked = document.querySelector(`input[name="${name}"]:checked`);
+            if (!checked) {
+                alert("모든 점수 항목을 선택해주세요.");
+                return false;
+            }
+        }
+        const strength = document.getElementById("strengthComment").value.trim();
+        const improvement = document.getElementById("improvementComment").value.trim();
+        if (!strength || !improvement) {
+            alert("강점과 개선점을 모두 입력해주세요.");
+            return false;
+        }
+        return true;
+    }
+</script>
+</th:block>
+</body>
+</html>

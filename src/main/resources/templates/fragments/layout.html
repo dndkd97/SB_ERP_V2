@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+	xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<meta charset="UTF-8" />
+<title layout:title-pattern="$CONTENT_TITLE - SBerp">SBerp</title>
+<head>
+<meta charset="UTF-8" />
+<title layout:title-pattern="$CONTENT_TITLE - SBerp">SBerp</title>
+<!-- header.html 의 headResources fragment 를 그대로 삽입 -->
+<th:block th:replace="~{fragments/header :: headResources}"></th:block>
+</head>
+<body>
+	<div class="sb-app" data-layout="standard">
+		<aside class="sb-sidebar" id="sbSidebar">
+			<th:block th:replace="~{fragments/sidebar :: sidebar}"></th:block>
+		</aside>
+		<div class="sb-main">
+			<th:block th:replace="~{fragments/header :: header}"></th:block>
+ 
+			<main class="sb-content" layout:fragment="content">
+				<!-- 개별 페이지 콘텐츠 -->
+			</main>
+ 
+			<th:block th:replace="~{fragments/footer :: footer}"></th:block>
+		</div>
+	</div>
+	<!-- 페이지별 스크립트는 이 슬롯에 layout:fragment="script" 로 채워 넣음 -->
+	<th:block layout:fragment="script"></th:block>
+</body>
+</html>
+ 
